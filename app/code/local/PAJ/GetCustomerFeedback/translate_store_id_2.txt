@@ -1,0 +1,4 @@
+Hello=Hallo
+Your Order=Ihre Bestellung
+Thankyou,=Freundliche Gruesse,
+This email was sent to: =Diese Nachricht ging an folgende E-Mail-Adresse: 

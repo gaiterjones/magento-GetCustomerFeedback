@@ -1,0 +1,160 @@
+<?xml version="1.0"?>
+<config>
+    <tabs>
+        <paj_extensions translate="label" module="getcustomerfeedbackhelper1">
+            <label>My Extensions</label>
+            <sort_order>210</sort_order>
+        </paj_extensions>
+    </tabs>
+    <sections>
+        <getcustomerfeedback_section1 translate="label" module="getcustomerfeedbackhelper1">
+            <class>separator-top</class>
+            <label>Get Customer Feedback</label>
+            <tab>paj_extensions</tab>
+            <sort_order>400</sort_order>
+            <show_in_default>1</show_in_default>
+            <show_in_website>1</show_in_website>
+            <show_in_store>1</show_in_store>
+                   <groups>
+					<general translate="label">
+						<label>Get Customer Feedback</label>
+						<frontend_type>text</frontend_type>
+						<sort_order>10</sort_order>
+						<show_in_default>1</show_in_default>
+						<show_in_website>1</show_in_website>
+						<show_in_store>1</show_in_store>
+						<fields>
+							<label1 translate="label comment">
+								<label>v0.0.3 - 28.02.2013 - BETA</label>
+								<frontend_type>note</frontend_type>
+								<sort_order>10</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>0</show_in_website>
+								<show_in_store>0</show_in_store>
+								<comment>
+								This Magento module automatically sends a feedback request email to customers who have placed an order.
+								The email includes a list of products last purchased with a link to the review page for each product.
+								The module utilises the Magento scheduling service which requires a cron job to execute the Magento cron.php script at regular intervals.
+								<![CDATA[Please visit <a href="http://blog.gaiterjones.com">blog.gaiterjones.com</a> for full documentation for this extension.]]>
+								</comment>
+							</label1>
+							<email_text1 translate="label comment">
+								<label>Email body content:</label>
+								<frontend_type>textarea</frontend_type>
+								<sort_order>20</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>1</show_in_website>
+								<show_in_store>1</show_in_store>
+								<comment>Text for the main part of the feedback request email.</comment>
+							</email_text1>
+							<email_text2 translate="label comment">
+								<label>Email footer content:</label>
+								<frontend_type>textarea</frontend_type>
+								<sort_order>30</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>1</show_in_website>
+								<show_in_store>1</show_in_store>
+								<comment>Text for the footer of the feedback request email.</comment>
+							</email_text2>
+							<email_subject translate="label comment">
+								<label>Subject text for the feedback email:</label>
+								<frontend_type>text</frontend_type>
+								<sort_order>40</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>1</show_in_website>
+								<show_in_store>1</show_in_store>
+								<comment>Subject text for email, if left blank defaults to "FOOTER LINK TEXT : Your Order # ORDERNUMBER".</comment>
+							</email_subject>
+							<email_footer_link translate="label comment">
+								<label>Email footer link text:</label>
+								<frontend_type>text</frontend_type>
+								<sort_order>50</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>1</show_in_website>
+								<show_in_store>1</show_in_store>
+								<comment>Text for email footer i.e. store name link, leave blank for no footer link.</comment>
+							</email_footer_link>
+							<max_feedback_items translate="label comment">
+								<label>Maximum number of cart items to request feadback for:</label>
+								<frontend_type>text</frontend_type>
+								<sort_order>70</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>1</show_in_website>
+								<show_in_store>1</show_in_store>
+								<comment>Max number of items to include in email for feedback, default is all cart items from last order.</comment>
+							</max_feedback_items>								
+							<email_feedback_icon translate="label comment">
+								<label>Leave feedback icon URL:</label>
+								<frontend_type>text</frontend_type>
+								<sort_order>70</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>1</show_in_website>
+								<show_in_store>1</show_in_store>
+								<comment>URL to use for a Leave Feedback icon, if blank text will be used.</comment>
+							</email_feedback_icon>								
+							<elapsed_time_from_order translate="label comment">
+								<label>When an order is placed send a feedback request email :</label>
+								<frontend_type>select</frontend_type>
+								<source_model>getcustomerfeedback_adminhtml/system_config_source_elapsedtimefromorder</source_model>							
+								<sort_order>80</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>1</show_in_website>
+								<show_in_store>1</show_in_store>
+								<comment>Select when feedback request emails should be sent.</comment>
+							</elapsed_time_from_order>
+							<check_order_status translate="label comment">
+								<label>Check order status:</label>
+								<frontend_type>select</frontend_type>
+								<source_model>adminhtml/system_config_source_yesno</source_model>
+								<sort_order>90</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>1</show_in_website>
+								<show_in_store>1</show_in_store>
+								<comment>Check order status and only send feedback request email when order status is complete.</comment>
+							</check_order_status>
+							<bcc_emails_enabled translate="label comment">
+								<label>BCC Copy Emails enabled:</label>
+								<frontend_type>select</frontend_type>
+								<source_model>adminhtml/system_config_source_yesno</source_model>
+								<sort_order>100</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>1</show_in_website>
+								<show_in_store>1</show_in_store>
+								<comment>Set to YES customer feedback emails will be blind copied to the general store contact email address.</comment>
+							</bcc_emails_enabled>							
+							<test_mode_enabled translate="label comment">
+								<label>Test mode enabled:</label>
+								<frontend_type>select</frontend_type>
+								<source_model>adminhtml/system_config_source_yesno</source_model>
+								<sort_order>100</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>1</show_in_website>
+								<show_in_store>1</show_in_store>
+								<comment>Set to YES emails will be sent to store general address, enabled by default for testing, if set to NO emails will be sent to customer.</comment>
+							</test_mode_enabled>
+							<url_tracking_tags translate="label comment">
+								<label>URL Tracking tags:</label>
+								<frontend_type>text</frontend_type>
+								<sort_order>110</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>1</show_in_website>
+								<show_in_store>1</show_in_store>
+								<comment>
+								<![CDATA[Insert tracking tags here that will be appended to leave feedback links, i.e. Google UTM tags. It could look something like '?utm_source=GetCustomerFeedback &utm_medium=Email&utm_campaign=MyCampaign']]></comment>
+							</url_tracking_tags>							
+							<send_alert_email translate="label comment">
+								<label>Send alert emails:</label>
+								<frontend_type>select</frontend_type>
+								<source_model>adminhtml/system_config_source_yesno</source_model>
+								<sort_order>120</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>1</show_in_website>
+								<show_in_store>1</show_in_store>
+								<comment>Send emails to the Magento general email address when errors are detected, enabled by default for testing.</comment>
+							</send_alert_email>								
+						</fields>						
+					</general>
+				</groups>
+        </getcustomerfeedback_section1>
+    </sections>
+ </config>

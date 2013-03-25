@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<config>
+    <modules>
+        <PAJ_GetCustomerFeedback>
+            <active>true</active>
+            <codePool>local</codePool>
+        </PAJ_GetCustomerFeedback>
+    </modules>
+</config>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+		<acl>
+			<resources>
+				<admin>
+					<children>
+						<system>
+							<children>
+								<config>
+									<children>
+										<getcustomerfeedback_section1 translate="title" module="getcustomerfeedbackhelper1">
+											<title>Get Customer Feedback Section 1 by PAJ</title>
+											<sort_order>10</sort_order>
+										</getcustomerfeedback_section1>
+									</children>
+								</config>
+							</children>
+						</system>
+					</children>
+				</admin>
+			</resources>
+		</acl>
+</config>
