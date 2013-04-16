@@ -3,7 +3,7 @@
 <config>
   <modules>
 	  <PAJ_GetCustomerFeedback>
-		  <version>0.0.3</version>
+		  <version>0.0.4</version>
 	  </PAJ_GetCustomerFeedback>
   </modules> 
     <global>

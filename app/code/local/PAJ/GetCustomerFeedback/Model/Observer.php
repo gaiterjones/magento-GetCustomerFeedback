@@ -2,7 +2,7 @@
 /**
  *  Get Customer Feedback Module
  *  
- *  Copyright (C) 2013 paj@gaiterjones.com & Zuiko
+ *  Copyright (C) 2013 paj@gaiterjones.com
  *
  *  v0.0.12 - 25.11.2011 - dev BETA release
  *  v0.0.13 - 25.11.2011 - bug fixes - store name and image links
@@ -19,6 +19,7 @@
  *	v0.0.20	- 20.02.2012 - Added locale file for translations
  *	v0.0.23	- 21.03.2012 - Added controls to prevent empty customer name from breaking code.
  * 	v0.0.3 - 28.02.2013  - Zuiko enhanced code to validate cache files against orders before sending.
+ * 	v0.0.4 - 16.04.2013  - Code tidy up, enhancements to order checking, fraud check etc.
  *                         
  *
  *	This program is free software: you can redistribute it and/or modify
@@ -53,11 +54,13 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		$customerEmail = $order->getCustomerEmail();
 		$realOrderId = $order->getRealOrderId();
 		$orderStatus = $order->getStatus();
+		
 		// clean customer name, First + LAST from session
 		$customerFirstName = strtolower(utf8_decode(Mage::getSingleton('customer/session')->getCustomer()->getFirstname()));
 		$customerLastName = strtolower(utf8_decode(Mage::getSingleton('customer/session')->getCustomer()->getLastname()));
 		$customerName=ucfirst($customerFirstName). " ". ucfirst($customerLastName);
 		$customerName=trim($customerName);
+		
 		// if no session i.e. guest checkout get customer name from billing address
 		if (empty($customerName)) { $customerName=$order->getBillingAddress()->getName();}
 		// if no customer name use default to stop blank name from breaking things
@@ -104,8 +107,8 @@ class PAJ_GetCustomerFeedback_Model_Observer
 				fwrite($fp2, $orderId. $newline);
 				// line 6 Internal Store ID
 				fwrite($fp2, $orderStoreID. $newline);
-				// LAST line Magento Version
-				fwrite($fp2, "Magento Version ". Mage::getVersion(). $newline);						
+				// LAST line Magento Version and debugging
+				fwrite($fp2, "Magento Version: ". Mage::getVersion(). " Status: ". $order->getStatus(). $newline);						
 				
 		
 				// parse cart for saleable/visible order items
@@ -223,6 +226,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 			} else {
 			    throw new Exception('The GetCustomerFeedback module cache folder -'. $cacheFolder. ' is not writable, please check the folder permissions.');
 			}
+			
 		} catch (Exception $e) {
 			
 		   if (empty($e))
@@ -240,254 +244,180 @@ class PAJ_GetCustomerFeedback_Model_Observer
 	//
 	public function GetCustomerFeedbackCron()
 	{
-	/* YJC adding this part to clean cache folder with cancelled or incorrect orders */
-		try {
-				$cacheFolder  = Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS;
-				if (is_writable($cacheFolder)) 
-				{
-					// get list of files in cache folder
-					require_once Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'classes'. DS . 'class.GetCustomerFeedback.Email.php';
-					$fileArray=$this->getDirectoryList(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS);
-					$nbfiles = count($fileArray);
-					if ($nbfiles > 0) // if files exist in cache folder then go get 'em...
-					{
-						sort($fileArray);	
-						// get first file contents
-						for ($file_index = 0; $file_index < $nbfiles; $file_index++)
-						{
-						/* YJC loop to clean folder with cancelled or incorrect orders */
-						$newestOrderFile=Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. $fileArray[$file_index];
-						$orderData=file($newestOrderFile);
-									// determine order status
-									$order = Mage::getModel('sales/order')->load(trim($orderData[5]));
-									if (!$order->getEntityId()) 
-									{
-										// clean up  YJC inexisting order for any reason
-										unlink($newestOrderFile);
-										unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));							
-									} 
-									else {
-										$orderStatus=$order->getStatus();
-										if (empty($orderStatus))
-										{
-											// clean up YJC unknown status order
-											unlink($newestOrderFile);
-											unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-										}
-										else {										
-										if ($orderStatus==="canceled")
-											{
-												// clean up YJC canceled order
-												unlink($newestOrderFile);
-												unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-											}
-										}
-									}
-						}
-						/* /YJC loop to clean folder with cancelled or incorrect orders */
-					}
-					
-				}
-					
-						
-		}catch (Exception $e) {
-					
-				   if (empty($e))
-					{
-						$this->sendAlertEmail("An undefined error occurred preparing the customer feedback html cache file.");
-					} else {
-						$this->sendAlertEmail($e->getMessage());
-					}
-				}
-	/* /YJC adding this part to clean cache folder with cancelled or incorrect orders */					
-// YJC part to send an email of the first concerned order, working normally on correct orders, exceptions remain in case of modified order status  in the meantime
+				
 	try {
 			$cacheFolder  = Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS;
+			
 			if (is_writable($cacheFolder)) 
 			{
 				// get list of files in cache folder
 				require_once Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'classes'. DS . 'class.GetCustomerFeedback.Email.php';
-				$fileArray=$this->getDirectoryList(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS);
+				$files=$this->getDirectoryList(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS);
 
-				if (count($fileArray) > 0) // if files exist in cache folder then go get 'em...
+				if (count($files) > 0) // if files exist in cache folder then go get 'em...
 				{
-					$newline="\n";
-					sort($fileArray);	
-					// get first file contents
-					$newestOrderFile=Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. $fileArray[0];
-					$orderData=file($newestOrderFile);
-					// get store id from .dat file
-					$storeID=trim($orderData[6]);
-					// get customer name from .dat file
-					$customerName=trim($orderData[1]);
-					// catch empty customer name as this will break email
-					if (empty($customerName)){ $customerName=$this->getTranslation('Customer',$storeID); }
-					// get customer email address from .dat file
-					$customerEmail=trim($orderData[2]);
 					
-						// determine time lapsed since order
-						$elaspedHoursSinceOrder= floor((time()-(int)$orderData[4])/3600);
-						// waiting period in days from config
-						$emailNotificationWaitingPeriod=(int)Mage::getStoreConfig('getcustomerfeedback_section1/general/elapsed_time_from_order');
-						// change from days to hours
-						$emailNotificationWaitingPeriod=$emailNotificationWaitingPeriod*24;
+					$newline="\n";
+					sort($files);
+					
+					foreach ($files as $file)
+					{
 						
-						if ($elaspedHoursSinceOrder >= $emailNotificationWaitingPeriod)
-						{
-							// construct email
-							// check for test mode
-							if (Mage::getStoreConfig('getcustomerfeedback_section1/general/test_mode_enabled')) {
-								$to = Mage::getStoreConfig('trans_email/ident_general/name'). ' <'. Mage::getStoreConfig('trans_email/ident_general/email'). '>';
-							} else {
-								$to = $customerName. ' <'. $customerEmail. '>';
-							}
-							
-							// check for bcc mode
-							$bcc=null;
-							if (Mage::getStoreConfig('getcustomerfeedback_section1/general/bcc_emails_enabled')) {
-								$bcc = Mage::getStoreConfig('trans_email/ident_general/name'). ' <'. Mage::getStoreConfig('trans_email/ident_general/email'). '>';
-							}
+						// get first file contents
+						$newestOrderFile=Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. $file;
+						$orderData=file($newestOrderFile);
+						
+						// validate order check for cancelled, fraud, valid order etc etc.
+							$order = Mage::getModel('sales/order')->load(trim($orderData[5]));
+							$orderStatus=$order->getStatus();	
+						
+							if (!$this->validateOrder($orderData,$orderStatus)) { continue; } // keep on loopin baby
 
-							$storeID=(int)$orderData[6];
-							// from address uses store sales address
-							$from = Mage::getStoreConfig('trans_email/ident_sales/name'). ' <'. Mage::getStoreConfig('trans_email/ident_sales/email',$storeID). '>';
-
-							// set email subject text
-							$subject=Mage::getStoreConfig('getcustomerfeedback_section1/general/email_subject',$storeID);
-							if (empty($subject)) {
-								$subject = Mage::getStoreConfig('getcustomerfeedback_section1/general/email_footer_link',$storeID). ' : '. $this->getTranslation('Your Order',$storeID). ' # '. trim($orderData[0]);
-							}
+						// get store id from .dat file
+						$storeID=trim($orderData[6]);
+						// get customer name from .dat file
+						$customerName=trim($orderData[1]);
+						// catch empty customer name as this will break email
+						if (empty($customerName)){ $customerName=$this->getTranslation('Customer',$storeID); }
+						// get customer email address from .dat file
+						$customerEmail=trim($orderData[2]);
+						
+							// determine time lapsed since order
+							$elaspedHoursSinceOrder= floor((time()-(int)$orderData[4])/3600);
+							// waiting period in days from config
+							$emailNotificationWaitingPeriod=(int)Mage::getStoreConfig('getcustomerfeedback_section1/general/elapsed_time_from_order');
+							// change from days to hours
+							$emailNotificationWaitingPeriod=$emailNotificationWaitingPeriod*24;
 							
-							$style='<style type="text/css">
-body,td { color:#2f2f2f; font:11px/1.35em Verdana, Arial, Helvetica, sans-serif; }
-a:visited {color: #000000}
-</style>';
-							
-							$header='<body style="background:#F6F6F6; font-family:Verdana, Arial, Helvetica, sans-serif; font-size:12px; margin:0; padding:0;">
-<div style="background:#F6F6F6; font-family:Verdana, Arial, Helvetica, sans-serif; font-size:12px; margin:0; padding:0;">
-<table cellspacing="0" cellpadding="0" border="0" width="100%">
-<tr>
-<td align="center" valign="top" style="padding:20px 0 20px 0">
-<table bgcolor="#FFFFFF" cellspacing="0" cellpadding="10" border="0" width="650" style="border:1px solid #E0E0E0;">';
-									
-							$greeting = '<tr><td valign="top"><h1 style="font-size:22px; font-weight:normal; line-height:22px; margin:0 0 11px 0;"">'. $this->getTranslation('Hello',$storeID). ' '. $customerName. ',</h1>';
-							$orderInfo = '<tr><td><h2 style="font-size:18px; font-weight:normal; margin:0;">'. $this->getTranslation('Your Order',$storeID). ' #'. trim($orderData[0]). '<small> ('. (date("j.n.Y h:i:s A",(int)$orderData[4])). ')</small></h2></td></tr>';
-							$intro = '<p style="font-size:12px; line-height:16px; margin:0;">'. Mage::getStoreConfig('getcustomerfeedback_section1/general/email_text1',$storeID). '</p></tr></td>';
-							$products = '<tr><td>'. file_get_contents (Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3])). '</td></tr>';
-							$footer = '<tr><td><p>'. Mage::getStoreConfig('getcustomerfeedback_section1/general/email_text2',$storeID). '</p><p style="font-size:12px; margin:0 0 10px 0"></p></td></tr>
-<tr>
-<td bgcolor="#EAEAEA" align="center" style="background:#EAEAEA; text-align:center;"><center><p style="font-size:12px; margin:0;"><strong><a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB).'">'. Mage::getStoreConfig('getcustomerfeedback_section1/general/email_footer_link',$storeID).'</a></strong></p></center></td>
-</tr>
-</tr>
-</table>
-</div>
-</body>';
-							
-							// construct email html
-							$body=$style.$header.$greeting.$intro.$orderInfo.$products.$footer;
-							// if check status is set to yes
-							if (Mage::getStoreConfig('getcustomerfeedback_section1/general/check_order_status'))
+							if ($elaspedHoursSinceOrder >= $emailNotificationWaitingPeriod)
 							{
-								// determine order status
-								$order = Mage::getModel('sales/order')->load(trim($orderData[5]));
-								 
-								if (!$order->getEntityId()) 
-								{
-									// clean up
-									unlink($newestOrderFile);
-									unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-									throw new Exception('Error - GetCustomerFeedbackCron non existant order number: '.$orderData[0].' erasing file: '.$newestOrderFile.' and his companion .html');
-								} /* YJC erased order or inexisting number for an unknown reason */
-								
-								$orderStatus=$order->getStatus();							
-								if (empty($orderStatus))
-								{
-									// clean up
-									unlink($newestOrderFile);
-									unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-									throw new Exception('Error - GetCustomerFeedbackCron unknown status or order number: '.$orderData[0].' erasing file: '.$newestOrderFile.' and his companion .html'); 
-									/* YJC unknown status order */
-								}
-								
-								if ($orderStatus==="complete")
-								{
-								// send get feedback email
-								$oMail = new GetCustomerFeedbackMail($to,$from,$subject,$body,$bcc);
-								if ($oMail->send())
-								{
-									// mail sent
-									$oMail = null;
-								} else {
-									$oMail = null;
-									// clean up
-									unlink($newestOrderFile);
-									unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-									throw new Exception('An error occurred trying to send customer feedback email, command : '.$orderData[0].' erasing file: '.$newestOrderFile.' and his companion .html'); 
-									/* YJC impossible to send email */
-								}
-								
+								// construct email
+								// check for test mode
 								if (Mage::getStoreConfig('getcustomerfeedback_section1/general/test_mode_enabled')) {
-									// dont update order if in test mode								
+									$to = Mage::getStoreConfig('trans_email/ident_general/name'). ' <'. Mage::getStoreConfig('trans_email/ident_general/email'). '>';
 								} else {
-									// add order note
-									$order->addStatusToHistory($order->getStatus(), '<i>GetCustomerFeedback</i><br/>Customer feedback email sent to <strong>'. $customerEmail. '</strong>.', true);
-									$order->save();
+									$to = $customerName. ' <'. $customerEmail. '>';
 								}
 								
-								// clean up
-								unlink($newestOrderFile);
-								unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-								return;
+								// check for bcc mode
+								$bcc=null;
+								if (Mage::getStoreConfig('getcustomerfeedback_section1/general/bcc_emails_enabled')) {
+									$bcc = Mage::getStoreConfig('trans_email/ident_general/name'). ' <'. Mage::getStoreConfig('trans_email/ident_general/email'). '>';
+								}
+	
+								$storeID=(int)$orderData[6];
+								// email from address uses store sales address
+								$from = Mage::getStoreConfig('trans_email/ident_sales/name'). ' <'. Mage::getStoreConfig('trans_email/ident_sales/email',$storeID). '>';
+	
+								// set email subject text
+								$subject=Mage::getStoreConfig('getcustomerfeedback_section1/general/email_subject',$storeID);
+								if (empty($subject)) {
+									$subject = Mage::getStoreConfig('getcustomerfeedback_section1/general/email_footer_link',$storeID). ' : '. $this->getTranslation('Your Order',$storeID). ' # '. trim($orderData[0]);
+								}
 								
-								} else {
-									if ($orderStatus==="cancelled")
+								$style='<style type="text/css">
+	body,td { color:#2f2f2f; font:11px/1.35em Verdana, Arial, Helvetica, sans-serif; }
+	a:visited {color: #000000}
+	</style>';
+								
+								$header='<body style="background:#F6F6F6; font-family:Verdana, Arial, Helvetica, sans-serif; font-size:12px; margin:0; padding:0;">
+	<div style="background:#F6F6F6; font-family:Verdana, Arial, Helvetica, sans-serif; font-size:12px; margin:0; padding:0;">
+	<table cellspacing="0" cellpadding="0" border="0" width="100%">
+	<tr>
+	<td align="center" valign="top" style="padding:20px 0 20px 0">
+	<table bgcolor="#FFFFFF" cellspacing="0" cellpadding="10" border="0" width="650" style="border:1px solid #E0E0E0;">';
+										
+								$greeting = '<tr><td valign="top"><h1 style="font-size:22px; font-weight:normal; line-height:22px; margin:0 0 11px 0;"">'. $this->getTranslation('Hello',$storeID). ' '. $customerName. ',</h1>';
+								$orderInfo = '<tr><td><h2 style="font-size:18px; font-weight:normal; margin:0;">'. $this->getTranslation('Your Order',$storeID). ' #'. trim($orderData[0]). '<small> ('. (date("j.n.Y h:i:s A",(int)$orderData[4])). ')</small></h2></td></tr>';
+								$intro = '<p style="font-size:12px; line-height:16px; margin:0;">'. Mage::getStoreConfig('getcustomerfeedback_section1/general/email_text1',$storeID). '</p></tr></td>';
+								$products = '<tr><td>'. file_get_contents (Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3])). '</td></tr>';
+								$footer = '<tr><td><p>'. Mage::getStoreConfig('getcustomerfeedback_section1/general/email_text2',$storeID). '</p><p style="font-size:12px; margin:0 0 10px 0"></p></td></tr>
+	<tr>
+	<td bgcolor="#EAEAEA" align="center" style="background:#EAEAEA; text-align:center;"><center><p style="font-size:12px; margin:0;"><strong><a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB).'">'. Mage::getStoreConfig('getcustomerfeedback_section1/general/email_footer_link',$storeID).'</a></strong></p></center></td>
+	</tr>
+	</tr>
+	</table>
+	</div>
+	</body>';
+								
+								// construct email html
+								$body=$style.$header.$greeting.$intro.$orderInfo.$products.$footer;
+								
+								// if check status is set to yes
+								if (Mage::getStoreConfig('getcustomerfeedback_section1/general/check_order_status'))
+								{
+									
+									// determine order status
+									if ($orderStatus==="complete")
 									{
+										// send get feedback email
+										$oMail = new GetCustomerFeedbackMail($to,$from,$subject,$body,$bcc);
+										
+										if ($oMail->send())
+										{
+											// mail sent
+											$oMail = null;
+										} else {
+											$oMail = null;
+											// clean up
+											unlink($newestOrderFile);
+											unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+											throw new Exception('An error occurred trying to send customer feedback email, command : '.$orderData[0].' erasing file: '.$newestOrderFile.' and his companion .html'); 
+											/* YJC impossible to send email */
+										}
+										
+										if (Mage::getStoreConfig('getcustomerfeedback_section1/general/test_mode_enabled')) {
+											// dont update order if in test mode								
+										} else {
+											// add order note
+											$order->addStatusToHistory($order->getStatus(), '<i>GetCustomerFeedback</i><br/>Customer feedback email sent to <strong>'. $customerEmail. '</strong>.', true);
+											$order->save();
+										}
+										
 										// clean up
 										unlink($newestOrderFile);
 										unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+										continue;
+									
 									}
+									
+								} else { // check status not set, send email
 								
-									// wait until order status is complete
-									return;
-								}
-								
-							} else {
-								// send get feedback email
-								$oMail = new GetCustomerFeedbackMail($to,$from,$subject,$body);
-								if ($oMail->send())
-								{
-									// mail sent
-									$oMail = null;
-								} else {
-									$oMail = null;
+									// send get feedback email
+									$oMail = new GetCustomerFeedbackMail($to,$from,$subject,$body);
+									if ($oMail->send())
+									{
+										// mail sent
+										$oMail = null;
+									} else {
+										$oMail = null;
+										// clean up
+										unlink($newestOrderFile);
+										unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+										throw new Exception('An error occurred trying to send customer feedback email, order: '.$orderData[0].' erasing file: '.$newestOrderFile.' and the companion .html file'); 
+										/* YJC impossible to send email */
+									}
+									
+									if (Mage::getStoreConfig('getcustomerfeedback_section1/general/test_mode_enabled')) {
+										// dont update order if in test mode
+									} else {
+									// add order note
+										$order = Mage::getModel('sales/order')->load(trim($orderData[5]));
+										$order->addStatusToHistory($order->getStatus(), '<i>GetCustomerFeedback</i><br/>Customer feedback email sent to <strong>'. $customerEmail. '</strong>.', true);
+										$order->save();
+									}
+									
 									// clean up
 									unlink($newestOrderFile);
 									unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-									throw new Exception('An error occurred trying to send customer feedback email, order: '.$orderData[0].' erasing file: '.$newestOrderFile.' and the companion .html file'); 
-									/* YJC impossible to send email */
 								}
 								
-								if (Mage::getStoreConfig('getcustomerfeedback_section1/general/test_mode_enabled')) {
-									// dont update order if in test mode
-								} else {
-								// add order note
-									$order = Mage::getModel('sales/order')->load(trim($orderData[5]));
-									$order->addStatusToHistory($order->getStatus(), '<i>GetCustomerFeedback</i><br/>Customer feedback email sent to <strong>'. $customerEmail. '</strong>.', true);
-									$order->save();
-								}
 								
-								// clean up
-								unlink($newestOrderFile);
-								unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-								return;
-							}
-							
-						} else {
-							// wait until elasped time correct
-							return;
-						}
+							} // elapsed time check
+					
+					} // file array loop
 				
-				} // files to process check
+				} // file array contains files
 				
 			} else { // folder permissions check
 			    throw new Exception('The GetCustomerFeedback module cache folder -'. $cacheFolder. ' is not writable, please check the folder permissions.');
@@ -504,9 +434,47 @@ a:visited {color: #000000}
 		}
 	}
 	
+	private function validateOrder($orderData,$orderStatus)
+	{
+	
+		// determine order status
+		$order = Mage::getModel('sales/order')->load(trim($orderData[5]));
+		if (!$order->getEntityId()) 
+		{
+			// clean up  YJC inexisting order for any reason
+			unlink($newestOrderFile);
+			unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+			return false;				
+		} 
+			
+		if (empty($orderStatus))
+		{
+			// clean up YJC unknown status order
+			unlink($newestOrderFile);
+			unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+			return false;
+		}										
+			
+		if ($orderStatus==="canceled" || $orderStatus==="cancelled") // which spelling is correct?
+		{
+			unlink($newestOrderFile);
+			unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+			return false;
+		}
+		
+		if ($orderStatus==="fraud")
+		{
+			unlink($newestOrderFile);
+			unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+			return false;
+		}	
+	
+			return true;
+	}
+	
 	// function to return filenames in a directory as an array
 	//
-	public function getDirectoryList ($directory) 
+	private function getDirectoryList ($directory) 
 	{
 	  // create an array to hold directory list
 	  $results = array();
@@ -514,12 +482,19 @@ a:visited {color: #000000}
 	  $handler = opendir($directory);
 	  // open directory and walk through the filenames
 	  while ($file = readdir($handler)) {
+	  
 	    // read files and match against the files we are interested in
 	    if (substr($file, 0, 19) === "GetCustomerFeedback") {
+			
 			if (substr($file, -4) === ".dat") {
 				$results[] = $file;
 			}
+			
+			if (substr($file, -10) === ".emailtest") {
+				$this->sendAlertEmail('Test email from GetCustomerFeedback Module!');
+			}			
 	    }
+		
 	  }
 	  // tidy up: close the handler
 	  closedir($handler);
@@ -530,7 +505,7 @@ a:visited {color: #000000}
 
 	// function to return translations from locale file
 	//
-	public function getTranslation($word,$storeID=1) 
+	private function getTranslation($word,$storeID=1) 
 	{
 	  $translationFile=Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS. 'translate_store_id_'. (string)$storeID. '.txt';
 	  
@@ -556,7 +531,7 @@ a:visited {color: #000000}
 	}	
 
 
-	public function sendAlertEmail($message)
+	private function sendAlertEmail($message)
     {
 		if (Mage::getStoreConfig('getcustomerfeedback_section1/general/send_alert_email')) {
 			$message = wordwrap($message, 70);

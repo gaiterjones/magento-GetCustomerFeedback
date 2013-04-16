@@ -25,7 +25,7 @@
 						<show_in_store>1</show_in_store>
 						<fields>
 							<label1 translate="label comment">
-								<label>v0.0.3 - 28.02.2013 - BETA</label>
+								<label>v0.0.4 - 16.04.2013 - BETA</label>
 								<frontend_type>note</frontend_type>
 								<sort_order>10</sort_order>
 								<show_in_default>1</show_in_default>
