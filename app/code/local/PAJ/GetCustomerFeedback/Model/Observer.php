@@ -20,6 +20,8 @@
  *	v0.0.23	- 21.03.2012 - Added controls to prevent empty customer name from breaking code.
  * 	v0.0.3 - 28.02.2013  - Zuiko enhanced code to validate cache files against orders before sending.
  * 	v0.0.4 - 16.04.2013  - Code tidy up, enhancements to order checking, fraud check etc.
+ * 	v0.0.5 - 29.04.2013  - Added option to use Magento mail system by default to try and avoid customer mail going to spam using custom mail class.
+ * 	v0.0.6 - 29.04.2013  - Added detection of configurable parent for invisible child products in cart.
  *                         
  *
  *	This program is free software: you can redistribute it and/or modify
@@ -81,67 +83,54 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		$feedbackProductIDs=array();
 
 		try {
-			// dump cart to html file
-			if (is_writable($cacheFolder)) 
-			{
-				$newline="\n";
-				$timeStamp=time();
-				$fp1 = fopen($cacheFolder. 'GetCustomerFeedback'. $timeStamp. '.html', 'w');		
-				$fp2 = fopen($cacheFolder. 'GetCustomerFeedback'. $timeStamp. '.dat', 'w');		
-				// product html in fp1
-				fwrite($fp1, '<table cellspacing="0" cellpadding="0" border="0" width="650" style="border:1px solid #EAEAEA;">'. $newline);	
-				fwrite($fp1, '<tbody bgcolor="#F6F6F6">');
-				
-				// customer data in fp2
-				// line 0 Order ID
-				fwrite($fp2, $realOrderId. $newline);
-				// line 1 Customer Name
-				fwrite($fp2, $customerName. $newline);
-				// line 2 Customer Email
-				fwrite($fp2, $customerEmail. $newline);
-				// line 3 HTML File
-				fwrite($fp2, 'GetCustomerFeedback'. $timeStamp. '.html'. $newline);
-				// line 4 Date/time
-				fwrite($fp2, $timeStamp. $newline);
-				// line 5 Internal Order ID
-				fwrite($fp2, $orderId. $newline);
-				// line 6 Internal Store ID
-				fwrite($fp2, $orderStoreID. $newline);
-				// LAST line Magento Version and debugging
-				fwrite($fp2, "Magento Version: ". Mage::getVersion(). " Status: ". $order->getStatus(). $newline);						
-				
 		
 				// parse cart for saleable/visible order items
-
 				foreach ($items as $itemId => $item)
 				{
 					$cartProduct = Mage::getModel('catalog/product')->load($item->getProductId());
 				
-					if ($cartProduct->getVisibility()!= "4")
+					if ($cartProduct->getVisibility()!= "4") // product not visible in catalog
 					{
 					
-					// check if the *invisible* product is a child of a grouped product
-					
-					if (Mage::getVersion() >= 1.4)
-					{
-					// Magento v1.42 +
-					$parentIdArray = Mage::getModel('catalog/product_type_grouped')
-						->getParentIdsByChild( $cartProduct->getId() );
-					} else {
-					// pre 1.42
-					$parentIdArray = $cartProduct->loadParentProductIds()->getData('parent_product_ids');
-					}
+						// check if the *invisible* product is a child of a grouped or configurable product
 						
-						if (!empty($parentIdArray[0]))
+						if (Mage::getVersion() >= 1.4)
 						{
-							// use parent product if parent is grouped otherwise move on, these are not the products you are looking for...
-							$cartProduct = Mage::getModel('catalog/product')->load($parentIdArray[0]);
+						// Magento v1.42 +
+						$parentIdGrouped = Mage::getModel('catalog/product_type_grouped')
+							->getParentIdsByChild( $cartProduct->getId() );
+						$parentIdConfigurable = Mage::getModel('catalog/product_type_configurable')
+							->getParentIdsByChild( $cartProduct->getId() );							
+						} else {
+						// pre 1.42
+						$parentIdGrouped = $cartProduct->loadParentProductIds()->getData('parent_product_ids');
+						$parentIdConfigurable = $cartProduct->loadParentProductIds()->getData('parent_product_ids');
+						}
+						
+						// use parent product if parent is grouped or configurable otherwise move on, these are not the products you are looking for...
+						// check for grouped product parent
+						if (!empty($parentIdGrouped[0]))
+						{
 							
+							$cartProduct = Mage::getModel('catalog/product')->load($parentIdGrouped[0]);
+						
 							if($cartProduct->getTypeId() != "grouped") {
 								continue;
 							}
 			
 						}
+						
+						// check for configurable product parent
+						if (!empty($parentIdConfigurable[0]))
+						{
+							// use parent product if parent is grouped or configurable otherwise move on, these are not the products you are looking for...
+							$cartProduct = Mage::getModel('catalog/product')->load($parentIdConfigurable[0]);
+						
+							if($cartProduct->getTypeId() != "configurable") {
+								continue;
+							}
+			
+						}						
 
 					}
 					
@@ -158,16 +147,23 @@ class PAJ_GetCustomerFeedback_Model_Observer
 				
 				// get max feedback items
 				$maxFeedbackItems=(int)Mage::getStoreConfig('getcustomerfeedback_section1/general/max_feedback_items',$orderStoreID);
+				
+				$cartHTML=null;
+				$cartHTML=$cartHTML. '<table cellspacing="0" cellpadding="0" border="0" width="650" style="border:1px solid #EAEAEA;">'. $newline;	
+				$cartHTML=$cartHTML. '<tbody bgcolor="#F6F6F6">'. $newline;	;
+				
 				if (!is_numeric($maxFeedbackItems)) {
 					$maxFeedbackItems=0;
 				}
+				
+				// item counter
 				$feedbackItemCount=0;
 				
 				// create the product html
 				foreach ($feedbackProductIDs as $key => $item)
 				{
 				
-				$cartProduct = Mage::getModel('catalog/product')->load($item);
+					$cartProduct = Mage::getModel('catalog/product')->load($item);
 					
 					// get product attributes
 					$cartProductID=$cartProduct->getId();
@@ -178,30 +174,19 @@ class PAJ_GetCustomerFeedback_Model_Observer
 					
 					if ($cartProduct->getVisibility()=== "4") // products must be visible in search and catalogue
 					{
-						fwrite($fp1, '<tr>'. $newline);
-						fwrite($fp1, '<td align="left" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;">'. $itemCount. '</td>'. $newline);
-						fwrite($fp1, '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><img height="64" width="64" src="'. $cartProductImageURL. '"></td>'. $newline);
-						fwrite($fp1, '<td align="left" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;">'. htmlentities($cartProductName). '</td>'. $newline);
+						$cartHTML=$cartHTML. '<tr>'. $newline;
+						$cartHTML=$cartHTML. '<td align="left" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;">'. $itemCount. '</td>'. $newline;
+						$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><img height="64" width="64" src="'. $cartProductImageURL. '"></td>'. $newline;
+						$cartHTML=$cartHTML. '<td align="left" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;">'. htmlentities($cartProductName). '</td>'. $newline;
 						
-						// these cart item properties are not being used yet...
-						#fwrite($fp1, '<td>'. $item->getQtyToInvoice(). '</td>'. $newline);
-						#fwrite($fp1, '<td>'. $item->getSku(). '</td>'. $newline);
-						#fwrite($fp1, '<td>'. $item->getPrice(). '</td>'. $newline);
-						/* YJC
 						if (empty($emailFeedbackIconURL))
 						{
-							fwrite($fp1, '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. Mage::getBaseUrl(). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags. '">Leave Feedback</a></td>'. $newline);
+							$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags. '">Leave Feedback</a></td>'. $newline;
 						} else {
-							fwrite($fp1, '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. Mage::getBaseUrl(). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags. '"><img src="'. $emailFeedbackIconURL. '"></a></td>'. $newline);						
-						} */
-						if (empty($emailFeedbackIconURL))
-						{
-							fwrite($fp1, '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags. '">Leave Feedback</a></td>'. $newline);
-						} else {
-							fwrite($fp1, '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags. '"><img src="'. $emailFeedbackIconURL. '"></a></td>'. $newline);						
+							$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags. '"><img src="'. $emailFeedbackIconURL. '"></a></td>'. $newline;
 						}
 						
-						fwrite($fp1, '</tr>'. $newline);
+						$cartHTML=$cartHTML. '</tr>'. $newline;
 						$itemCount ++;
 					}
 					
@@ -217,14 +202,48 @@ class PAJ_GetCustomerFeedback_Model_Observer
 						
 					}
 				}
-				
-				fwrite($fp1, '</tbody>'. $newline);
-				fwrite($fp1, '</table>'. $newline);
-				fclose($fp1);
+
+				$cartHTML=$cartHTML. '</tbody>'. $newline;
+				$cartHTML=$cartHTML. '</table>'. $newline;
+
+			
+			if ($feedbackItemCount==0) { throw new Exception('No valid products could be found in the cart for order '. $orderId. '.'); }
+			
+			
+			// dump cart to html file
+			if (is_writable($cacheFolder)) 
+			{
+				$newline="\n";
+				$timeStamp=time();
+				$fp2 = fopen($cacheFolder. 'GetCustomerFeedback'. $timeStamp. '.dat', 'w');		
+				// customer data in fp2
+				// line 0 Order ID
+				fwrite($fp2, $realOrderId. $newline);
+				// line 1 Customer Name
+				fwrite($fp2, $customerName. $newline);
+				// line 2 Customer Email
+				fwrite($fp2, $customerEmail. $newline);
+				// line 3 HTML File
+				fwrite($fp2, 'GetCustomerFeedback'. $timeStamp. '.html'. $newline);
+				// line 4 Date/time
+				fwrite($fp2, $timeStamp. $newline);
+				// line 5 Internal Order ID
+				fwrite($fp2, $orderId. $newline);
+				// line 6 Internal Store ID
+				fwrite($fp2, $orderStoreID. $newline);
+				// LAST line Magento Version and debugging
+				fwrite($fp2, "Magento Version: ". Mage::getVersion(). " Status: ". $order->getStatus(). $newline);
 				fclose($fp2);
+				
+				
+				$fp1 = fopen($cacheFolder. 'GetCustomerFeedback'. $timeStamp. '.html', 'w');						
+				// product html in fp1
+				fwrite($fp1, $cartHTML);
+				fclose($fp1);
+				
 
 			} else {
-			    throw new Exception('The GetCustomerFeedback module cache folder -'. $cacheFolder. ' is not writable, please check the folder permissions.');
+				throw new Exception('The GetCustomerFeedback module cache folder -'. $cacheFolder. ' is not writable, please check the folder permissions.');
 			}
 			
 		} catch (Exception $e) {
@@ -294,20 +313,23 @@ class PAJ_GetCustomerFeedback_Model_Observer
 								// construct email
 								// check for test mode
 								if (Mage::getStoreConfig('getcustomerfeedback_section1/general/test_mode_enabled')) {
-									$to = Mage::getStoreConfig('trans_email/ident_general/name'). ' <'. Mage::getStoreConfig('trans_email/ident_general/email'). '>';
+									$toName=Mage::getStoreConfig('trans_email/ident_general/name');
+									$to = Mage::getStoreConfig('trans_email/ident_general/email');
 								} else {
-									$to = $customerName. ' <'. $customerEmail. '>';
+									$to = $customerEmail;
+									$toName = $customerName;
 								}
 								
 								// check for bcc mode
 								$bcc=null;
 								if (Mage::getStoreConfig('getcustomerfeedback_section1/general/bcc_emails_enabled')) {
-									$bcc = Mage::getStoreConfig('trans_email/ident_general/name'). ' <'. Mage::getStoreConfig('trans_email/ident_general/email'). '>';
+									$bcc = Mage::getStoreConfig('trans_email/ident_general/email');
 								}
 	
 								$storeID=(int)$orderData[6];
 								// email from address uses store sales address
-								$from = Mage::getStoreConfig('trans_email/ident_sales/name'). ' <'. Mage::getStoreConfig('trans_email/ident_sales/email',$storeID). '>';
+								$from = Mage::getStoreConfig('trans_email/ident_sales/email',$storeID);
+								$fromName = Mage::getStoreConfig('trans_email/ident_sales/name');
 	
 								// set email subject text
 								$subject=Mage::getStoreConfig('getcustomerfeedback_section1/general/email_subject',$storeID);
@@ -351,18 +373,23 @@ class PAJ_GetCustomerFeedback_Model_Observer
 									if ($orderStatus==="complete")
 									{
 										// send get feedback email
-										$oMail = new GetCustomerFeedbackMail($to,$from,$subject,$body,$bcc);
+										if (Mage::getStoreConfig('getcustomerfeedback_section1/general/use_php_mail')) // use php mail
+										{
+											$oMail = new GetCustomerFeedbackMail($toName. ' <'. $to. '>',$fromName. ' <'. $from. '>',$subject,$body,$bcc);
+											$_sendMail=$oMail->send();
+										} else { // use magento mail
+											$_sendMail=$this->magentoMail($toName,$to,$body,$subject,$fromName,$from,$bcc);
 										
-										if ($oMail->send())
+										}
+										
+										if ($_sendMail)
 										{
 											// mail sent
-											$oMail = null;
 										} else {
-											$oMail = null;
 											// clean up
 											unlink($newestOrderFile);
 											unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-											throw new Exception('An error occurred trying to send customer feedback email, command : '.$orderData[0].' erasing file: '.$newestOrderFile.' and his companion .html'); 
+											throw new Exception('An error occurred trying to send customer feedback email, command : '.$orderData[0].' erasing file: '.$newestOrderFile.' and associated .html file'); 
 											/* YJC impossible to send email */
 										}
 										
@@ -384,17 +411,23 @@ class PAJ_GetCustomerFeedback_Model_Observer
 								} else { // check status not set, send email
 								
 									// send get feedback email
-									$oMail = new GetCustomerFeedbackMail($to,$from,$subject,$body);
-									if ($oMail->send())
+									if (Mage::getStoreConfig('getcustomerfeedback_section1/general/use_php_mail')) // use php mail
+									{
+										$oMail = new GetCustomerFeedbackMail($toName. ' <'. $to. '>',$fromName. ' <'. $from. '>',$subject,$body,$bcc);
+										$_sendMail=$oMail->send();
+									} else { // use magento mail
+										$_sendMail=$this->magentoMail($toName,$to,$body,$subject,$fromName,$fromEmail,$bcc);
+									
+									}
+									
+									if ($_sendMail)
 									{
 										// mail sent
-										$oMail = null;
 									} else {
-										$oMail = null;
 										// clean up
 										unlink($newestOrderFile);
 										unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-										throw new Exception('An error occurred trying to send customer feedback email, order: '.$orderData[0].' erasing file: '.$newestOrderFile.' and the companion .html file'); 
+										throw new Exception('An error occurred trying to send customer feedback email, order: '.$orderData[0].' erasing file: '.$newestOrderFile.' and associated .html file.'); 
 										/* YJC impossible to send email */
 									}
 									
@@ -530,7 +563,29 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		return $word;
 	}	
 
+	private function magentoMail($_toName,$_toEmail,$_body,$_subject,$_fromName,$_fromEmail,$_bcc='')
+	{
+		$_mail = Mage::getModel('core/email');
+		$_mail->setToName($_toName);
+		$_mail->setToEmail($_toEmail);
+		$_mail->setBody($_body);
+		$_mail->setSubject($_subject);
+		$_mail->setFromEmail($_fromEmail);
+		$_mail->setFromName($_fromName);
+		//if (!empty($_bcc)) {$_mail->addBcc($_bcc);}
+		$_mail->setType('html'); // use html or text as mail format
 
+		try {
+			$_mail->send();
+			return true;
+		}
+		catch (Exception $e) {
+			// could not send
+			return false;
+		}	
+	
+	}
+	
 	private function sendAlertEmail($message)
     {
 		if (Mage::getStoreConfig('getcustomerfeedback_section1/general/send_alert_email')) {

@@ -25,7 +25,7 @@
 						<show_in_store>1</show_in_store>
 						<fields>
 							<label1 translate="label comment">
-								<label>v0.0.4 - 16.04.2013 - BETA</label>
+								<label>v0.0.6 - 29.04.2013 - BETA</label>
 								<frontend_type>note</frontend_type>
 								<sort_order>10</sort_order>
 								<show_in_default>1</show_in_default>
@@ -35,7 +35,7 @@
 								This Magento module automatically sends a feedback request email to customers who have placed an order.
 								The email includes a list of products last purchased with a link to the review page for each product.
 								The module utilises the Magento scheduling service which requires a cron job to execute the Magento cron.php script at regular intervals.
-								<![CDATA[Please visit <a href="http://blog.gaiterjones.com">blog.gaiterjones.com</a> for full documentation for this extension.]]>
+								<![CDATA[Please visit <a href="http://blog.gaiterjones.com">blog.gaiterjones.com</a> for full documentation for this module.]]>
 								</comment>
 							</label1>
 							<email_text1 translate="label comment">
@@ -120,7 +120,7 @@
 								<show_in_default>1</show_in_default>
 								<show_in_website>1</show_in_website>
 								<show_in_store>1</show_in_store>
-								<comment>Set to YES customer feedback emails will be blind copied to the general store contact email address.</comment>
+								<comment>Set to YES customer feedback emails will be blind copied to the general store contact email address. Requires PHP email.</comment>
 							</bcc_emails_enabled>							
 							<test_mode_enabled translate="label comment">
 								<label>Test mode enabled:</label>
@@ -141,7 +141,7 @@
 								<show_in_store>1</show_in_store>
 								<comment>
 								<![CDATA[Insert tracking tags here that will be appended to leave feedback links, i.e. Google UTM tags. It could look something like '?utm_source=GetCustomerFeedback &utm_medium=Email&utm_campaign=MyCampaign']]></comment>
-							</url_tracking_tags>							
+							</url_tracking_tags>
 							<send_alert_email translate="label comment">
 								<label>Send alert emails:</label>
 								<frontend_type>select</frontend_type>
@@ -151,7 +151,17 @@
 								<show_in_website>1</show_in_website>
 								<show_in_store>1</show_in_store>
 								<comment>Send emails to the Magento general email address when errors are detected, enabled by default for testing.</comment>
-							</send_alert_email>								
+							</send_alert_email>									
+							<use_php_mail translate="label comment">
+								<label>Use PHP to send mail:</label>
+								<frontend_type>select</frontend_type>
+								<source_model>adminhtml/system_config_source_yesno</source_model>
+								<sort_order>130</sort_order>
+								<show_in_default>1</show_in_default>
+								<show_in_website>1</show_in_website>
+								<show_in_store>1</show_in_store>
+								<comment>Send customer feedback emails using PHP (YES) or Magento Email System(NO).</comment>
+							</use_php_mail>								
 						</fields>						
 					</general>
 				</groups>
