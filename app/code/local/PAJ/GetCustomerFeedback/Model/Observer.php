@@ -22,6 +22,7 @@
  * 	v0.0.4 - 16.04.2013  - Code tidy up, enhancements to order checking, fraud check etc.
  * 	v0.0.5 - 29.04.2013  - Added option to use Magento mail system by default to try and avoid customer mail going to spam using custom mail class.
  * 	v0.0.6 - 29.04.2013  - Added detection of configurable parent for invisible child products in cart.
+ * 	v0.0.61 - 01.05.2013  - bug fix.
  *                         
  *
  *	This program is free software: you can redistribute it and/or modify
@@ -81,6 +82,8 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		$emailFeedbackIconURL=trim(Mage::getStoreConfig('getcustomerfeedback_section1/general/email_feedback_icon',(int)$orderStoreID));
 		$urlTrackingTags = trim(Mage::getStoreConfig('getcustomerfeedback_section1/general/url_tracking_tags',(int)$orderStoreID));
 		$feedbackProductIDs=array();
+		
+		$newline="\n";
 
 		try {
 		
@@ -213,7 +216,6 @@ class PAJ_GetCustomerFeedback_Model_Observer
 			// dump cart to html file
 			if (is_writable($cacheFolder)) 
 			{
-				$newline="\n";
 				$timeStamp=time();
 				$fp2 = fopen($cacheFolder. 'GetCustomerFeedback'. $timeStamp. '.dat', 'w');		
 				// customer data in fp2
