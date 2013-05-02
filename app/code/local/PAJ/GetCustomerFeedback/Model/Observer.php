@@ -23,6 +23,7 @@
  * 	v0.0.5 - 29.04.2013  - Added option to use Magento mail system by default to try and avoid customer mail going to spam using custom mail class.
  * 	v0.0.6 - 29.04.2013  - Added detection of configurable parent for invisible child products in cart.
  * 	v0.0.61 - 01.05.2013  - bug fix.
+ * 	v0.0.62 - 02.05.2013  - bug fix.
  *                         
  *
  *	This program is free software: you can redistribute it and/or modify
@@ -476,31 +477,37 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		$order = Mage::getModel('sales/order')->load(trim($orderData[5]));
 		if (!$order->getEntityId()) 
 		{
-			// clean up  YJC inexisting order for any reason
-			unlink($newestOrderFile);
-			unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+			if (file_exists($newestOrderFile)) {
+				unlink($newestOrderFile);
+				unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+			}
 			return false;				
 		} 
 			
 		if (empty($orderStatus))
 		{
-			// clean up YJC unknown status order
-			unlink($newestOrderFile);
-			unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+			if (file_exists($newestOrderFile)) {
+				unlink($newestOrderFile);
+				unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+			}
 			return false;
 		}										
 			
 		if ($orderStatus==="canceled" || $orderStatus==="cancelled") // which spelling is correct?
 		{
-			unlink($newestOrderFile);
-			unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+			if (file_exists($newestOrderFile)) {
+				unlink($newestOrderFile);
+				unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+			}
 			return false;
 		}
 		
 		if ($orderStatus==="fraud")
 		{
-			unlink($newestOrderFile);
-			unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+			if (file_exists($newestOrderFile)) {
+				unlink($newestOrderFile);
+				unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+			}
 			return false;
 		}	
 	
