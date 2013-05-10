@@ -24,6 +24,7 @@
  * 	v0.0.6 - 29.04.2013  - Added detection of configurable parent for invisible child products in cart.
  * 	v0.0.61 - 01.05.2013  - bug fix.
  * 	v0.0.62 - 02.05.2013  - bug fix.
+ * 	v0.0.63 - 10.05.2013  - changed alert emails to use mage or php class
  *                         
  *
  *	This program is free software: you can redistribute it and/or modify
@@ -598,11 +599,28 @@ class PAJ_GetCustomerFeedback_Model_Observer
 	private function sendAlertEmail($message)
     {
 		if (Mage::getStoreConfig('getcustomerfeedback_section1/general/send_alert_email')) {
-			$message = wordwrap($message, 70);
-			$from = Mage::getStoreConfig('trans_email/ident_general/email');
-			$headers = "From: $from";
+		
+			$_body = wordwrap($message, 70);
+			$_subject='Alert from Get Customer Feedback Module';
+			
+			$_fromEmail = Mage::getStoreConfig('trans_email/ident_general/email');
+			//$_fromEmail = 'your @ email address here.com'; // edit for debugging
+			
+			$_fromName='Get Customer Feedback Module';
+			
+			$_toEmail=Mage::getStoreConfig('trans_email/ident_general/email');
+			//$_toEmail = 'your @ email address here.com'; // edit for debugging
+			
+			$_toName='Module Support';
 
-			mail(Mage::getStoreConfig('trans_email/ident_general/email'), 'Alert from Get Customer Feedback module', $message, $headers);
+			if (Mage::getStoreConfig('getcustomerfeedback_section1/general/use_php_mail')) // use php mail
+			{
+				$oMail = new GetCustomerFeedbackMail($_toName. ' <'. $_toEmail. '>',$_fromName. ' <'. $_fromEmail. '>',$_subject,$_body);
+				$_sendMail=$oMail->send();
+				
+			} else { // use magento mail			
+				$this->magentoMail($_toName,$_toEmail,$_body,$_subject,$_fromName,$_fromEmail);
+			}
 		}
 	}
 	
