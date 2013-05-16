@@ -25,7 +25,7 @@
  * 	v0.0.61 - 01.05.2013  - bug fix.
  * 	v0.0.62 - 02.05.2013  - bug fix.
  * 	v0.0.63 - 10.05.2013  - changed alert emails to use mage or php class
- * 	v0.0.64 - 16.05.2013  - bug fix.
+ * 	v0.0.64 - 16.05.2013  - bug fix/s.
  *                         
  *
  *	This program is free software: you can redistribute it and/or modify
@@ -215,7 +215,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 				$cartHTML=$cartHTML. '</table>'. $newline;
 
 			
-			if ($feedbackItemCount==0) { throw new Exception('No valid products could be found in the cart for order '. $orderId. '.'); }
+			if ($feedbackItemCount==0) { throw new Exception('No valid products to use for customer feedback could be found in the cart for order '. $orderId. '.'); }
 			
 			
 			// dump cart to html file
@@ -250,7 +250,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 				
 
 			} else {
-				throw new Exception('The GetCustomerFeedback module cache folder -'. $cacheFolder. ' is not writable, please check the folder permissions.');
+				throw new Exception('The GetCustomerFeedback module cache folder - '. $cacheFolder. ' is not writable, please check the folder permissions.');
 			}
 			
 		} catch (Exception $e) {
@@ -390,15 +390,11 @@ class PAJ_GetCustomerFeedback_Model_Observer
 										
 										}
 										
-										if ($_sendMail)
-										{
-											// mail sent
-										} else {
+										if (!$_sendMail) { // mail send error
 											// clean up
 											unlink($orderDatFile);
 											unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
 											throw new Exception('An error occurred trying to send customer feedback email, command : '.$orderData[0].' erasing file: '.$orderDatFile.' and associated .html file'); 
-											/* YJC impossible to send email */
 										}
 										
 										if (Mage::getStoreConfig('getcustomerfeedback_section1/general/test_mode_enabled')) {
@@ -412,7 +408,6 @@ class PAJ_GetCustomerFeedback_Model_Observer
 										// clean up
 										unlink($orderDatFile);
 										unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-										continue;
 									
 									}
 									
@@ -428,21 +423,17 @@ class PAJ_GetCustomerFeedback_Model_Observer
 									
 									}
 									
-									if ($_sendMail)
-									{
-										// mail sent
-									} else {
+									if (!$_sendMail) { // mail send error
 										// clean up
 										unlink($orderDatFile);
 										unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-										throw new Exception('An error occurred trying to send customer feedback email, order: '.$orderData[0].' erasing file: '.$orderDatFile.' and associated .html file.'); 
-										/* YJC impossible to send email */
+										throw new Exception('An error occurred trying to send customer feedback email, command : '.$orderData[0].' erasing file: '.$orderDatFile.' and associated .html file'); 
 									}
 									
 									if (Mage::getStoreConfig('getcustomerfeedback_section1/general/test_mode_enabled')) {
 										// dont update order if in test mode
 									} else {
-									// add order note
+										// add order note
 										$order = Mage::getModel('sales/order')->load(trim($orderData[5]));
 										$order->addStatusToHistory($order->getStatus(), '<i>GetCustomerFeedback</i><br/>Customer feedback email sent to <strong>'. $customerEmail. '</strong>.', true);
 										$order->save();
@@ -451,8 +442,8 @@ class PAJ_GetCustomerFeedback_Model_Observer
 									// clean up
 									unlink($orderDatFile);
 									unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-								}
 								
+								} // check order status
 								
 							} // elapsed time check
 					
@@ -460,7 +451,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 				
 				} // file array contains files
 				
-			} else { // folder permissions check
+			} else { // folder permissions check failed
 			    throw new Exception('The GetCustomerFeedback module cache folder -'. $cacheFolder. ' is not writable, please check the folder permissions.');
 			}
 							
