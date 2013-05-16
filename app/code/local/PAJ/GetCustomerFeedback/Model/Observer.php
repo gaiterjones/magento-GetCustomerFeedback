@@ -25,6 +25,7 @@
  * 	v0.0.61 - 01.05.2013  - bug fix.
  * 	v0.0.62 - 02.05.2013  - bug fix.
  * 	v0.0.63 - 10.05.2013  - changed alert emails to use mage or php class
+ * 	v0.0.64 - 16.05.2013  - bug fix.
  *                         
  *
  *	This program is free software: you can redistribute it and/or modify
@@ -47,12 +48,14 @@
  *
  */
 
+// php mail class 
+require_once Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'classes'. DS . 'class.GetCustomerFeedback.Email.php';
+
 class PAJ_GetCustomerFeedback_Model_Observer
 {
 
 	public function GetCustomerFeedback()
 	{
-		require_once Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'classes'. DS . 'class.GetCustomerFeedback.Email.php';
 		$cacheFolder  = Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS;
 		$orderId = Mage::getSingleton('checkout/session')->getLastOrderId();
 		$order = Mage::getModel('sales/order')->load($orderId);
@@ -267,14 +270,13 @@ class PAJ_GetCustomerFeedback_Model_Observer
 	//
 	public function GetCustomerFeedbackCron()
 	{
-				
+	
 	try {
 			$cacheFolder  = Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS;
 			
 			if (is_writable($cacheFolder)) 
 			{
 				// get list of files in cache folder
-				require_once Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'classes'. DS . 'class.GetCustomerFeedback.Email.php';
 				$files=$this->getDirectoryList(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS);
 
 				if (count($files) > 0) // if files exist in cache folder then go get 'em...
@@ -287,21 +289,24 @@ class PAJ_GetCustomerFeedback_Model_Observer
 					{
 						
 						// get first file contents
-						$newestOrderFile=Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. $file;
-						$orderData=file($newestOrderFile);
+						$orderDatFile=Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. $file;
+						$orderData=file($orderDatFile);
 						
 						// validate order check for cancelled, fraud, valid order etc etc.
 							$order = Mage::getModel('sales/order')->load(trim($orderData[5]));
 							$orderStatus=$order->getStatus();	
 						
-							if (!$this->validateOrder($orderData,$orderStatus)) { continue; } // keep on loopin baby
+							if (!$this->validateOrder($orderData,$orderStatus,$orderDatFile)) { continue; } // keep on loopin baby
 
 						// get store id from .dat file
 						$storeID=trim($orderData[6]);
+						
 						// get customer name from .dat file
 						$customerName=trim($orderData[1]);
+						
 						// catch empty customer name as this will break email
 						if (empty($customerName)){ $customerName=$this->getTranslation('Customer',$storeID); }
+						
 						// get customer email address from .dat file
 						$customerEmail=trim($orderData[2]);
 						
@@ -329,10 +334,9 @@ class PAJ_GetCustomerFeedback_Model_Observer
 								if (Mage::getStoreConfig('getcustomerfeedback_section1/general/bcc_emails_enabled')) {
 									$bcc = Mage::getStoreConfig('trans_email/ident_general/email');
 								}
-	
-								$storeID=(int)$orderData[6];
+								
 								// email from address uses store sales address
-								$from = Mage::getStoreConfig('trans_email/ident_sales/email',$storeID);
+								$from = Mage::getStoreConfig('trans_email/ident_sales/email');
 								$fromName = Mage::getStoreConfig('trans_email/ident_sales/name');
 	
 								// set email subject text
@@ -391,9 +395,9 @@ class PAJ_GetCustomerFeedback_Model_Observer
 											// mail sent
 										} else {
 											// clean up
-											unlink($newestOrderFile);
+											unlink($orderDatFile);
 											unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-											throw new Exception('An error occurred trying to send customer feedback email, command : '.$orderData[0].' erasing file: '.$newestOrderFile.' and associated .html file'); 
+											throw new Exception('An error occurred trying to send customer feedback email, command : '.$orderData[0].' erasing file: '.$orderDatFile.' and associated .html file'); 
 											/* YJC impossible to send email */
 										}
 										
@@ -406,7 +410,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 										}
 										
 										// clean up
-										unlink($newestOrderFile);
+										unlink($orderDatFile);
 										unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
 										continue;
 									
@@ -429,9 +433,9 @@ class PAJ_GetCustomerFeedback_Model_Observer
 										// mail sent
 									} else {
 										// clean up
-										unlink($newestOrderFile);
+										unlink($orderDatFile);
 										unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
-										throw new Exception('An error occurred trying to send customer feedback email, order: '.$orderData[0].' erasing file: '.$newestOrderFile.' and associated .html file.'); 
+										throw new Exception('An error occurred trying to send customer feedback email, order: '.$orderData[0].' erasing file: '.$orderDatFile.' and associated .html file.'); 
 										/* YJC impossible to send email */
 									}
 									
@@ -445,7 +449,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 									}
 									
 									// clean up
-									unlink($newestOrderFile);
+									unlink($orderDatFile);
 									unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
 								}
 								
@@ -471,15 +475,16 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		}
 	}
 	
-	private function validateOrder($orderData,$orderStatus)
+	private function validateOrder($orderData,$orderStatus,$orderDatFile)
 	{
 	
 		// determine order status
 		$order = Mage::getModel('sales/order')->load(trim($orderData[5]));
+		
 		if (!$order->getEntityId()) 
 		{
-			if (file_exists($newestOrderFile)) {
-				unlink($newestOrderFile);
+			if (file_exists($orderDatFile)) {
+				unlink($orderDatFile);
 				unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
 			}
 			return false;				
@@ -487,8 +492,8 @@ class PAJ_GetCustomerFeedback_Model_Observer
 			
 		if (empty($orderStatus))
 		{
-			if (file_exists($newestOrderFile)) {
-				unlink($newestOrderFile);
+			if (file_exists($orderDatFile)) {
+				unlink($orderDatFile);
 				unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
 			}
 			return false;
@@ -496,8 +501,8 @@ class PAJ_GetCustomerFeedback_Model_Observer
 			
 		if ($orderStatus==="canceled" || $orderStatus==="cancelled") // which spelling is correct?
 		{
-			if (file_exists($newestOrderFile)) {
-				unlink($newestOrderFile);
+			if (file_exists($orderDatFile)) {
+				unlink($orderDatFile);
 				unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
 			}
 			return false;
@@ -505,8 +510,8 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		
 		if ($orderStatus==="fraud")
 		{
-			if (file_exists($newestOrderFile)) {
-				unlink($newestOrderFile);
+			if (file_exists($orderDatFile)) {
+				unlink($orderDatFile);
 				unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
 			}
 			return false;
@@ -535,7 +540,8 @@ class PAJ_GetCustomerFeedback_Model_Observer
 			
 			if (substr($file, -10) === ".emailtest") {
 				$this->sendAlertEmail('Test email from GetCustomerFeedback Module!');
-			}			
+			}
+						
 	    }
 		
 	  }
@@ -601,8 +607,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		if (Mage::getStoreConfig('getcustomerfeedback_section1/general/send_alert_email')) {
 		
 			$_body = wordwrap($message, 70);
-			$_subject='Alert from Get Customer Feedback Module';
-			
+						
 			$_fromEmail = Mage::getStoreConfig('trans_email/ident_general/email');
 			//$_fromEmail = 'your @ email address here.com'; // edit for debugging
 			
@@ -615,10 +620,12 @@ class PAJ_GetCustomerFeedback_Model_Observer
 
 			if (Mage::getStoreConfig('getcustomerfeedback_section1/general/use_php_mail')) // use php mail
 			{
+				$_subject='Alert from Get Customer Feedback Module (PHP)';
 				$oMail = new GetCustomerFeedbackMail($_toName. ' <'. $_toEmail. '>',$_fromName. ' <'. $_fromEmail. '>',$_subject,$_body);
 				$_sendMail=$oMail->send();
 				
-			} else { // use magento mail			
+			} else { // use magento mail
+				$_subject='Alert from Get Customer Feedback Module (MAGE)';
 				$this->magentoMail($_toName,$_toEmail,$_body,$_subject,$_fromName,$_fromEmail);
 			}
 		}
