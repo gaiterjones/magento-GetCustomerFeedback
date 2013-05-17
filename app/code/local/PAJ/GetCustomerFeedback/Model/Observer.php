@@ -334,8 +334,8 @@ class PAJ_GetCustomerFeedback_Model_Observer
 								}
 								
 								// email from address uses store sales address
-								$from = Mage::getStoreConfig('trans_email/ident_sales/email');
-								$fromName = Mage::getStoreConfig('trans_email/ident_sales/name');
+								$from = Mage::getStoreConfig('trans_email/ident_sales/email',$storeID);
+								$fromName = Mage::getStoreConfig('trans_email/ident_sales/name',$storeID);
 	
 								// set email subject text
 								$subject=Mage::getStoreConfig('getcustomerfeedback_section1/general/email_subject',$storeID);
@@ -359,9 +359,18 @@ class PAJ_GetCustomerFeedback_Model_Observer
 								$orderInfo = '<tr><td><h2 style="font-size:18px; font-weight:normal; margin:0;">'. $this->getTranslation('Your Order',$storeID). ' #'. trim($orderData[0]). '<small> ('. (date("j.n.Y h:i:s A",(int)$orderData[4])). ')</small></h2></td></tr>';
 								$intro = '<p style="font-size:12px; line-height:16px; margin:0;">'. Mage::getStoreConfig('getcustomerfeedback_section1/general/email_text1',$storeID). '</p></tr></td>';
 								$products = '<tr><td>'. file_get_contents (Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3])). '</td></tr>';
+								
+								$footerText=Mage::getStoreConfig('getcustomerfeedback_section1/general/email_footer_link',$storeID);
+								$footerTextHtml='<strong><a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB).'">'. $footerText .'</a></strong>';
+								
+								if (strtolower(substr($footerText, -4)) === ".png") // check for image
+								{
+									$footerTextHtml='<a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB).'"><img style="border: 0px;" src="'. $footerText .'"></a>';
+								}
+								
 								$footer = '<tr><td><p>'. Mage::getStoreConfig('getcustomerfeedback_section1/general/email_text2',$storeID). '</p><p style="font-size:12px; margin:0 0 10px 0"></p></td></tr>
 	<tr>
-	<td bgcolor="#EAEAEA" align="center" style="background:#EAEAEA; text-align:center;"><center><p style="font-size:12px; margin:0;"><strong><a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB).'">'. Mage::getStoreConfig('getcustomerfeedback_section1/general/email_footer_link',$storeID).'</a></strong></p></center></td>
+	<td bgcolor="#EAEAEA" align="center" style="background:#EAEAEA; text-align:center;"><p style="font-size:12px; text-align:center; margin:0;">'. $footerTextHtml. '</p></td>
 	</tr>
 	</tr>
 	</table>
