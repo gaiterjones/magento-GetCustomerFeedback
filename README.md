@@ -2,6 +2,8 @@
 ***
 
 ### Synopsis
+This Magento module helps to get more Magento customer product feedback by giving customers the opportunity and incentives to complete reviews and ratings for products they have recently purchased.
+
 The code in the module is called at checkout caching customer information and products ordered. The module then uses the Magento scheduling system to execute code that regularly checks the cached files to create a customised customer feedback email containing direct links to the review pages of the products the customer has ordered.
 
 When configurable parameters, such as order status, or elapsed time since the order was placed are met the email is sent to the customer and the order status updated.
