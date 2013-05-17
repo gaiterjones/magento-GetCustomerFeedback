@@ -25,7 +25,7 @@
  * 	v0.0.61 - 01.05.2013  - bug fix.
  * 	v0.0.62 - 02.05.2013  - bug fix.
  * 	v0.0.63 - 10.05.2013  - changed alert emails to use mage or php class
- * 	v0.0.64 - 16.05.2013  - bug fix/s.
+ * 	v0.0.65 - 17.05.2013  - bug fix/s.
  *                         
  *
  *	This program is free software: you can redistribute it and/or modify
@@ -56,12 +56,14 @@ class PAJ_GetCustomerFeedback_Model_Observer
 
 	public function GetCustomerFeedback()
 	{
+		// initialise variables
 		$cacheFolder  = Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS;
 		$orderId = Mage::getSingleton('checkout/session')->getLastOrderId();
 		$order = Mage::getModel('sales/order')->load($orderId);
 		$customerEmail = $order->getCustomerEmail();
 		$realOrderId = $order->getRealOrderId();
 		$orderStatus = $order->getStatus();
+		$newline="\n";
 		
 		// clean customer name, First + LAST from session
 		$customerFirstName = strtolower(utf8_decode(Mage::getSingleton('customer/session')->getCustomer()->getFirstname()));
@@ -76,19 +78,24 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		
 		// store id
 		$orderStoreID=$order->getStoreId();
+		
+		// items
 		$items = $order->getAllItems();
-		$itemcount=count($items);
 		$ids=array();
 		$name=array();
 		$unitPrice=array();
 		$sku=array();
 		$qty=array();
+		
+		// item counters
 		$itemCount=1;
+		$feedbackItemCount=0;
+		
+		// email
 		$emailFeedbackIconURL=trim(Mage::getStoreConfig('getcustomerfeedback_section1/general/email_feedback_icon',(int)$orderStoreID));
 		$urlTrackingTags = trim(Mage::getStoreConfig('getcustomerfeedback_section1/general/url_tracking_tags',(int)$orderStoreID));
-		$feedbackProductIDs=array();
 		
-		$newline="\n";
+		$feedbackProductIDs=array();
 
 		try {
 		
@@ -104,41 +111,32 @@ class PAJ_GetCustomerFeedback_Model_Observer
 						
 						if (Mage::getVersion() >= 1.4)
 						{
-						// Magento v1.42 +
-						$parentIdGrouped = Mage::getModel('catalog/product_type_grouped')
-							->getParentIdsByChild( $cartProduct->getId() );
-						$parentIdConfigurable = Mage::getModel('catalog/product_type_configurable')
-							->getParentIdsByChild( $cartProduct->getId() );							
+							// Magento v1.42 +
+							$parentIdGrouped = Mage::getModel('catalog/product_type_grouped')
+								->getParentIdsByChild( $cartProduct->getId() );
+							$parentIdConfigurable = Mage::getModel('catalog/product_type_configurable')
+								->getParentIdsByChild( $cartProduct->getId() );							
 						} else {
-						// pre 1.42
-						$parentIdGrouped = $cartProduct->loadParentProductIds()->getData('parent_product_ids');
-						$parentIdConfigurable = $cartProduct->loadParentProductIds()->getData('parent_product_ids');
+							// pre 1.42
+							$parentIdGrouped = $cartProduct->loadParentProductIds()->getData('parent_product_ids');
+							$parentIdConfigurable = $cartProduct->loadParentProductIds()->getData('parent_product_ids');
 						}
 						
 						// use parent product if parent is grouped or configurable otherwise move on, these are not the products you are looking for...
-						// check for grouped product parent
-						if (!empty($parentIdGrouped[0]))
+						
+						if (!empty($parentIdGrouped[0])) // check for grouped product parent
 						{
-							
 							$cartProduct = Mage::getModel('catalog/product')->load($parentIdGrouped[0]);
 						
-							if($cartProduct->getTypeId() != "grouped") {
-								continue;
-							}
-			
-						}
-						
-						// check for configurable product parent
-						if (!empty($parentIdConfigurable[0]))
-						{
-							// use parent product if parent is grouped or configurable otherwise move on, these are not the products you are looking for...
+							if($cartProduct->getTypeId() != "grouped") { continue; } // paranoia
+							
+						} else if (!empty($parentIdConfigurable[0])) { // check for configurable product parent
+
 							$cartProduct = Mage::getModel('catalog/product')->load($parentIdConfigurable[0]);
 						
-							if($cartProduct->getTypeId() != "configurable") {
-								continue;
-							}
-			
-						}						
+							if($cartProduct->getTypeId() != "configurable") { continue; } // paranoia
+		
+						}			
 
 					}
 					
@@ -164,9 +162,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 					$maxFeedbackItems=0;
 				}
 				
-				// item counter
-				$feedbackItemCount=0;
-				
+	
 				// create the product html
 				foreach ($feedbackProductIDs as $key => $item)
 				{
@@ -195,10 +191,12 @@ class PAJ_GetCustomerFeedback_Model_Observer
 						}
 						
 						$cartHTML=$cartHTML. '</tr>'. $newline;
+						
+						// increment counters
 						$itemCount ++;
+						$feedbackItemCount ++;
 					}
 					
-					$feedbackItemCount++;
 					
 					if ($maxFeedbackItems > 1) 	// check max feedback item control, must be greater than 1 or feedback is empty.
 					{
@@ -215,10 +213,10 @@ class PAJ_GetCustomerFeedback_Model_Observer
 				$cartHTML=$cartHTML. '</table>'. $newline;
 
 			
-			if ($feedbackItemCount==0) { throw new Exception('No valid products to use for customer feedback could be found in the cart for order '. $orderId. '.'); }
+			if ($feedbackItemCount===0) { throw new Exception('No valid products to use for customer feedback could be found in the cart for order '. $orderId. '.'); }
 			
 			
-			// dump cart to html file
+			// dump cart to html and dat files
 			if (is_writable($cacheFolder)) 
 			{
 				$timeStamp=time();
