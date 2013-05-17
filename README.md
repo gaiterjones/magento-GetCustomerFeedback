@@ -1,4 +1,4 @@
-## Magento Discount Coupon Code for Facebook Likes
+## Magento Get Customer Feedback Module
 ***
 
 ### Synopsis
