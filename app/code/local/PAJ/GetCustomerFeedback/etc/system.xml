@@ -25,7 +25,7 @@
 						<show_in_store>1</show_in_store>
 						<fields>
 							<label1 translate="label comment">
-								<label>v0.0.6 - 29.04.2013 - BETA</label>
+								<label>v0.0.7</label>
 								<frontend_type>note</frontend_type>
 								<sort_order>10</sort_order>
 								<show_in_default>1</show_in_default>
@@ -72,7 +72,7 @@
 								<show_in_default>1</show_in_default>
 								<show_in_website>1</show_in_website>
 								<show_in_store>1</show_in_store>
-								<comment>Text for email footer i.e. store name link, leave blank for no footer link.</comment>
+								<comment>Text for email footer i.e. store name link, leave blank for no footer link. Use a URL to a .png file for an image.</comment>
 							</email_footer_link>
 							<max_feedback_items translate="label comment">
 								<label>Maximum number of cart items to request feadback for:</label>
@@ -90,7 +90,7 @@
 								<show_in_default>1</show_in_default>
 								<show_in_website>1</show_in_website>
 								<show_in_store>1</show_in_store>
-								<comment>URL to use for a Leave Feedback icon, if blank text will be used.</comment>
+								<comment>URL to use for a Leave Feedback icon, if blank text will be used instead of image.</comment>
 							</email_feedback_icon>								
 							<elapsed_time_from_order translate="label comment">
 								<label>When an order is placed send a feedback request email :</label>
@@ -110,7 +110,7 @@
 								<show_in_default>1</show_in_default>
 								<show_in_website>1</show_in_website>
 								<show_in_store>1</show_in_store>
-								<comment>Check order status and only send feedback request email when order status is complete.</comment>
+								<comment>Check order status and only send feedback request email when order status is complete. Emails will be sent X days after complete status set.</comment>
 							</check_order_status>
 							<bcc_emails_enabled translate="label comment">
 								<label>BCC Copy Emails enabled:</label>

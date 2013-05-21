@@ -26,6 +26,7 @@
  * 	v0.0.62 - 02.05.2013  - bug fix.
  * 	v0.0.63 - 10.05.2013  - changed alert emails to use mage or php class
  * 	v0.0.65 - 17.05.2013  - bug fix/s.
+ * 	v0.0.7  - 21.05.2013  - Add new timestamp to order data when order is complete to make waiting period for feedback email more accurate.
  *                         
  *
  *	This program is free software: you can redistribute it and/or modify
@@ -236,8 +237,10 @@ class PAJ_GetCustomerFeedback_Model_Observer
 				fwrite($fp2, $orderId. $newline);
 				// line 6 Internal Store ID
 				fwrite($fp2, $orderStoreID. $newline);
+				// line 7 Order Status at time of Order with timestamp
+				fwrite($fp2, $order->getStatus(). '|'. $timeStamp. $newline);				
 				// LAST line Magento Version and debugging
-				fwrite($fp2, "Magento Version: ". Mage::getVersion(). " Status: ". $order->getStatus(). $newline);
+				fwrite($fp2, "Magento Version: ". Mage::getVersion(). $newline);
 				fclose($fp2);
 				
 				
@@ -288,13 +291,34 @@ class PAJ_GetCustomerFeedback_Model_Observer
 						
 						// get first file contents
 						$orderDatFile=Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. $file;
+						
+						// load dat file into array
 						$orderData=file($orderDatFile);
 						
-						// validate order check for cancelled, fraud, valid order etc etc.
-							$order = Mage::getModel('sales/order')->load(trim($orderData[5]));
-							$orderStatus=$order->getStatus();	
+						// load order
+						$order = Mage::getModel('sales/order')->load(trim($orderData[5]));
+						$orderStatus=$order->getStatus();
 						
-							if (!$this->validateOrder($orderData,$orderStatus,$orderDatFile)) { continue; } // keep on loopin baby
+						// validate order check for cancelled, fraud, valid order etc etc.
+						if (!$this->validateOrder($orderData,$orderStatus,$orderDatFile)) { continue; } // keep on loopin baby
+					
+						// get timestamp from dat file
+						$orderDatTimeStamp=$orderData[4];
+						
+						// compare order status with actual status, reset timestamp if complete
+						if (Mage::getStoreConfig('getcustomerfeedback_section1/general/check_order_status'))
+						{
+							$orderDatStatus=explode('|',$orderData[7]);
+							$orderDatStatus=$orderDatStatus[0];
+							
+							// if order status has changed to complete, update timestamp
+							if ($orderDatStatus != 'complete' and $orderStatus==='complete')
+							{
+								$this->UpdateDatFile($orderDatFile,$orderData,7,'complete|'.time());
+								$orderDatTimeStamp=time();
+							}
+							
+						}
 
 						// get store id from .dat file
 						$storeID=trim($orderData[6]);
@@ -308,8 +332,8 @@ class PAJ_GetCustomerFeedback_Model_Observer
 						// get customer email address from .dat file
 						$customerEmail=trim($orderData[2]);
 						
-							// determine time lapsed since order
-							$elaspedHoursSinceOrder= floor((time()-(int)$orderData[4])/3600);
+							// determine time (in hours) elapsed since order
+							$elaspedHoursSinceOrder= floor((time()-(int)$orderDatTimeStamp)/3600);
 							// waiting period in days from config
 							$emailNotificationWaitingPeriod=(int)Mage::getStoreConfig('getcustomerfeedback_section1/general/elapsed_time_from_order');
 							// change from days to hours
@@ -493,6 +517,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 			if (file_exists($orderDatFile)) {
 				unlink($orderDatFile);
 				unlink(Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3]));
+				//throw new Exception('Empty order status????');
 			}
 			return false;
 		}										
@@ -575,6 +600,28 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		}
 		
 		return $word;
+	}
+
+	// function to update dat order file
+	//
+	private function UpdateDatFile($_file,$_data,$_lineNumberToReplace,$_replacementData) 
+	{
+
+		$_newline="\n";
+		$_fileHandle = fopen($_file, 'w');
+		
+		foreach ($_data as $_lineNumber=>$_line)
+		{
+			if ($_lineNumber==$_lineNumberToReplace)
+			{
+				fwrite($_fileHandle,$_replacementData.$_newline);
+				continue;
+			}
+			
+			fwrite($_fileHandle,$_line);
+		}
+		
+		fclose($_fileHandle);
 	}	
 
 	private function magentoMail($_toName,$_toEmail,$_body,$_subject,$_fromName,$_fromEmail,$_bcc='')
