@@ -308,18 +308,20 @@ class PAJ_GetCustomerFeedback_Model_Observer
 						// compare order status with actual status, reset timestamp if complete
 						if (Mage::getStoreConfig('getcustomerfeedback_section1/general/check_order_status'))
 						{
-							$orderDatStatus=explode('|',$orderData[7]);
-							$orderDatStatus=$orderDatStatus[0];
+							$orderDatStatusArray=explode('|',$orderData[7]);
+							$orderDatStatus=$orderDatStatusArray[0];
 							
 							if ($orderStatus==='complete')
 							{
-								// if order status has changed to complete, update timestamp
+								
 								if ($orderDatStatus === 'complete')
 								{
-									$orderDatTimeStamp=$orderDatStatus[1];
+									// use timestamp from order completion date
+									
+									if (isset ($orderDatStatusArray[1]) { $orderDatTimeStamp=$orderDatStatusArray[1];}
 									
 								} else {
-								
+									// if order status has changed to complete, update timestamp
 									$this->UpdateDatFile($orderDatFile,$orderData,7,'complete|'.time());
 									$orderDatTimeStamp=time();
 								}
@@ -416,7 +418,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 								{
 									
 									// determine order status
-									if ($orderStatus==="complete")
+									if ($orderStatus==='complete')
 									{
 										// send get feedback email
 										if (Mage::getStoreConfig('getcustomerfeedback_section1/general/use_php_mail')) // use php mail
