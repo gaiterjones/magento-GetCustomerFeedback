@@ -311,11 +311,18 @@ class PAJ_GetCustomerFeedback_Model_Observer
 							$orderDatStatus=explode('|',$orderData[7]);
 							$orderDatStatus=$orderDatStatus[0];
 							
-							// if order status has changed to complete, update timestamp
-							if ($orderDatStatus != 'complete' and $orderStatus==='complete')
+							if ($orderStatus==='complete')
 							{
-								$this->UpdateDatFile($orderDatFile,$orderData,7,'complete|'.time());
-								$orderDatTimeStamp=time();
+								// if order status has changed to complete, update timestamp
+								if ($orderDatStatus === 'complete')
+								{
+									$orderDatTimeStamp=$orderDatStatus[1];
+									
+								} else {
+								
+									$this->UpdateDatFile($orderDatFile,$orderData,7,'complete|'.time());
+									$orderDatTimeStamp=time();
+								}
 							}
 							
 						}
