@@ -318,7 +318,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 								{
 									// use timestamp from order completion date
 									
-									if (isset ($orderDatStatusArray[1]) { $orderDatTimeStamp=$orderDatStatusArray[1];}
+									if (isset ($orderDatStatusArray[1])) { $orderDatTimeStamp=$orderDatStatusArray[1];}
 									
 								} else {
 									// if order status has changed to complete, update timestamp
