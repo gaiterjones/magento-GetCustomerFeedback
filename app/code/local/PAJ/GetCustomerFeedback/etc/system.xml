@@ -110,7 +110,7 @@
 								<show_in_default>1</show_in_default>
 								<show_in_website>1</show_in_website>
 								<show_in_store>1</show_in_store>
-								<comment>Check order status and only send feedback request email when order status is complete. Emails will be sent X days after complete status set.</comment>
+								<comment>Check order status and only send feedback request email when order status is complete. Emails will be sent X days after order complete status set.</comment>
 							</check_order_status>
 							<bcc_emails_enabled translate="label comment">
 								<label>BCC Copy Emails enabled:</label>

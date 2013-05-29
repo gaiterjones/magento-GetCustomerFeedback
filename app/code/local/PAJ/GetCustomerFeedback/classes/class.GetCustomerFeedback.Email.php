@@ -47,7 +47,7 @@ class GetCustomerFeedbackMail{
 		$sMessageId="<" . sha1(microtime()) . "@" . $fqdn_hostname . ">";
 		$this->addHeader('From: '.$this->from."\r\n");
 		if (!empty($this->cc)) {$this->addHeader('CC: '.$this->from."\r\n");}
-		if (!empty($this->bcc)) {$this->addHeader('BCC: '.$this->from."\r\n");}
+		if (!empty($this->bcc)) {$this->addHeader('BCC: '.$this->bcc."\r\n");}
         $this->addHeader('Reply-To: '.$this->from."\r\n");
 	    $this->addHeader("Content-Type:text/html; charset=\"iso-8859-1\"\r\n");		
         $this->addHeader('Return-Path: '.$this->from."\r\n");
