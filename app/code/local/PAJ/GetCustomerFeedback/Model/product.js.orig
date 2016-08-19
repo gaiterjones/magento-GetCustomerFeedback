@@ -1,0 +1,85 @@
+<?php
+Header("content-type: application/x-javascript");
+
+if(isset($_GET['sku'])){ $_sku = $_GET['sku'];} else { $_sku=false;};
+
+ 
+?>
+$(document).ready(function(){
+
+	var sku='<?php echo $_sku ?>';
+	
+	loadProduct(sku);
+
+	function loadProduct(sku)
+	{
+		var data = [];
+		data.push ({ name: "variables", value: "true" });
+		data.push ({ name: "src", value: "MAGE" });
+		data.push ({ name: "sku", value: sku });
+		
+		$.ajax({
+			type: "POST",
+			timeout:8000,
+			cache: false,
+			url: "http://shop.vw-e.de/index.php?ajax=true&class=GetProduct",
+			data: data,
+			dataType: "json",
+			success: function(php){
+				
+				if(php.status==='success')
+				{
+				
+					if (php.imageurl)
+					{					
+						options = {showTitle:true,softFocus:true,zoomHeight:400,zoomWidth:400}; 
+						$('#productimage').CloudZoom(options);
+						zoomInstance = $('#productimage').data('CloudZoom');
+						zoomInstance.loadImage(php.imageurl,php.imageurl);
+					}
+					
+					if (php.headerimageurl)	{ $("#product-header-image").html('<img src="' + php.headerimageurl + '">'); }	
+					
+					if (php.description) { $('#description').html(php.description); }
+					
+					if (php.title) { $('#title').html(php.title); }
+					
+					if (php.bullets)
+					{
+						var bulletsArray = php.bullets.split('|');
+						for(var i=0;i<bulletsArray.length;i++){
+							$('#bullets').append("<li>" +bulletsArray[i]+ "</li>");
+					
+						}
+					}
+					
+					$('#bullets').append('<li>Art-Nr.:<span class="uppercase">' + php.sku + '</span></li>');
+					
+				} else {
+				
+					$('#description').html(php.errormessage);
+					$('#title').html('Ooops!');
+					$("#productimage").attr("src", "http://shop.vw-e.de/images/default-sku.jpg");
+				}
+				
+			},
+			error: function(jqXHR, textStatus, errorThrown){
+			
+				if(errorThrown==='timeout') {
+					
+					$('#description').html('Timeout.');
+
+				} else if (textStatus==='parsererror') {
+					
+					$('#description').html('Parse Error!');
+
+				} else {
+					
+					$('#description').html(textStatus);
+				}
+				
+			}
+			
+		});	
+	}
+});

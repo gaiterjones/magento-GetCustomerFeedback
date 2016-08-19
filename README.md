@@ -1,21 +1,13 @@
-## Magento Get Customer Feedback Module
+## Magento Print/View Invoices
 ***
 
 ### Synopsis
-This Magento module helps to get more Magento customer product feedback by giving customers the opportunity and incentives to complete reviews and ratings for products they have recently purchased.
-
-The code in the module is called at checkout caching customer information and products ordered. The module then uses the Magento scheduling system to execute code that regularly checks the cached files to create a customised customer feedback email containing direct links to the review pages of the products the customer has ordered.
-
-When configurable parameters, such as order status, or elapsed time since the order was placed are met the email is sent to the customer and the order status updated.
-
-The customer feedback email allows you to directly follow up every customer order and offer incentives to the customer to complete product reviews and ratings. An example email is shown below.
-
-![image](http://blog.gaiterjones.com/wp-content/uploads/2011/11/getcustomerfeedbackexampleemail1-620x571.jpg)
+This PHP application allows you to print and view Magento invoices with one click.
 
 ### Version
 ***
-	@version		0.6.0
-	@since			05 2013
+	@version		10092013
+	@since			09 2013
 	@author			gaiterjones
 	@documentation	[blog.gaiterjones.com](http://blog.gaiterjones.com)
 	@twitter		twitter.com/gaiterjones
@@ -28,17 +20,9 @@ The customer feedback email allows you to directly follow up every customer orde
 
 ### Installation
 
-Enable Magento scheduling system
+Copy the application files to a web accessible folder.
 
-To install this extension:
-
-1. Unzip the module and copy the contents of the modules app folder to the app folder of your Magento store installation.
-
-2. Ensure that the module /cache folder has write permission set to allow the WWW user group write access. The module caches customer and product information in this folder.
-
-3. Refresh the Magento Store cache
-
-4. Logout and login back into the admin backend, goto System – Configuration and locate the configuration settings under My Extensions – Get Customer Feedback.
+You may install the application in your Magento folder but you should secure the installation folder, as there is no application security.
  
 
 ## License

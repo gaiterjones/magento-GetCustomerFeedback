@@ -67,8 +67,8 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		$newline="\n";
 		
 		// clean customer name, First + LAST from session
-		$customerFirstName = strtolower(utf8_decode(Mage::getSingleton('customer/session')->getCustomer()->getFirstname()));
-		$customerLastName = strtolower(utf8_decode(Mage::getSingleton('customer/session')->getCustomer()->getLastname()));
+		$customerFirstName = strtolower(Mage::getSingleton('customer/session')->getCustomer()->getFirstname());//YJC utf8_decode nuisible avec htmlentities si encodage precise
+		$customerLastName = strtolower(Mage::getSingleton('customer/session')->getCustomer()->getLastname());//YJC utf8_decode nuisible avec htmlentities si encodage precise
 		$customerName=ucfirst($customerFirstName). " ". ucfirst($customerLastName);
 		$customerName=trim($customerName);
 		
@@ -172,7 +172,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 					
 					// get product attributes
 					$cartProductID=$cartProduct->getId();
-					$cartProductName=utf8_decode($cartProduct->getName());
+					$cartProductName=$cartProduct->getName(); //YJC utf8_decode nuisible avec htmlentities si encodage precise
 					$cartProductImageURL=$cartProduct->getImageUrl();
 					$cartProductImageURL=str_replace("https","http",$cartProductImageURL);
 					$cartProductVisibility=$cartProduct->getVisibility();
@@ -182,15 +182,20 @@ class PAJ_GetCustomerFeedback_Model_Observer
 						$cartHTML=$cartHTML. '<tr>'. $newline;
 						$cartHTML=$cartHTML. '<td align="left" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;">'. $itemCount. '</td>'. $newline;
 						$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><img height="64" width="64" src="'. $cartProductImageURL. '"></td>'. $newline;
-						$cartHTML=$cartHTML. '<td align="left" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;">'. htmlentities($cartProductName). '</td>'. $newline;
+						$cartHTML=$cartHTML. '<td align="left" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;">'. htmlentities($cartProductName, ENT_QUOTES, "UTF-8"). '</td>'. $newline;//YJC encoding precision
 						
 						if (empty($emailFeedbackIconURL))
+						/*
 						{
 							$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags. '">Leave Feedback</a></td>'. $newline;
 						} else {
 							$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags. '"><img src="'. $emailFeedbackIconURL. '"></a></td>'. $newline;
-						}
-						
+						}*/
+						{
+							$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. Mage::app()->getStore($orderStoreID)->getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags. '">Leave Feedback</a></td>'. $newline;
+						} else {
+							$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. Mage::app()->getStore($orderStoreID)->getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags. '"><img src="'. $emailFeedbackIconURL. '"></a></td>'. $newline;
+						}						
 						$cartHTML=$cartHTML. '</tr>'. $newline;
 						
 						// increment counters
@@ -388,7 +393,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 	<td align="center" valign="top" style="padding:20px 0 20px 0">
 	<table bgcolor="#FFFFFF" cellspacing="0" cellpadding="10" border="0" width="650" style="border:1px solid #E0E0E0;">';
 										
-								$greeting = '<tr><td valign="top"><h1 style="font-size:22px; font-weight:normal; line-height:22px; margin:0 0 11px 0;"">'. $this->getTranslation('Hello',$storeID). ' '. $customerName. ',</h1>';
+								$greeting = '<tr><td valign="top"><h1 style="font-size:22px; font-weight:normal; line-height:22px; margin:0 0 11px 0;"">'. $this->getTranslation('Hello',$storeID). ' '. htmlentities($customerName, ENT_QUOTES, "UTF-8") . ',</h1>';//YJC encoding precision
 								$orderInfo = '<tr><td><h2 style="font-size:18px; font-weight:normal; margin:0;">'. $this->getTranslation('Your Order',$storeID). ' #'. trim($orderData[0]). '<small> ('. (date("j.n.Y h:i:s A",(int)$orderData[4])). ')</small></h2></td></tr>';
 								$intro = '<p style="font-size:12px; line-height:16px; margin:0;">'. Mage::getStoreConfig('getcustomerfeedback_section1/general/email_text1',$storeID). '</p></tr></td>';
 								$products = '<tr><td>'. file_get_contents (Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3])). '</td></tr>';
