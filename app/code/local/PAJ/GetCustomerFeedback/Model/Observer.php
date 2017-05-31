@@ -168,8 +168,8 @@ class PAJ_GetCustomerFeedback_Model_Observer
 					if ($cartProduct->getVisibility()=== "4") // products must be visible in search and catalogue
 					{
 						$cartHTML=$cartHTML. '<tr>'. $newline;
-						$cartHTML=$cartHTML. '<td align="left" valign="top" style="font-size:15px; padding:3px 9px 3px; border-bottom:1px dotted #CCCCCC;">'. $itemCount. '</td>'. $newline;
-						$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:15px; padding:3px 9px 3px; border-bottom:1px dotted #CCCCCC;"><img height="64" width="64" src="'. $cartProductImageURL. '"></td>'. $newline;
+						$cartHTML=$cartHTML. '<td align="left" valign="top" style="max-width: 15px; width: 15px; font-size:15px; padding:3px 9px 3px; border-bottom:1px dotted #CCCCCC;">'. $itemCount. '</td>'. $newline;
+						$cartHTML=$cartHTML. '<td align="center" valign="top" style="max-width: 84px; font-size:15px; padding:3px 9px 3px; border-bottom:1px dotted #CCCCCC;"><img height="64" width="64" src="'. $cartProductImageURL. '"></td>'. $newline;
 						$cartHTML=$cartHTML. '<td align="left" valign="top" style="font-size:15px; padding:3px 9px 3px; border-bottom:1px dotted #CCCCCC;">'. htmlentities($cartProductName, ENT_QUOTES, "UTF-8"). '</td>'. $newline;//YJC encoding precision
 						
 						if (empty($emailFeedbackIconURL))

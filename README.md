@@ -2,7 +2,7 @@
 ***
 
 ### Synopsis
-This extensions sends a Get Customer Feedback email to customers who have placed an order.
+This Magento 1.X CE module sends a Get Customer Feedback email to customers who have placed an order.
 
 ### Version
 ***
@@ -12,13 +12,15 @@ This extensions sends a Get Customer Feedback email to customers who have placed
 	
 ### Requirements
 
-* PHP5.x/MYSQL
+* PHP5.4+
 
 * Magento CE 1.3-1.9
 
 ### Installation
 
-To install the extension, copy the contents of the extension app folder to your magento store app folder. Make sure the extension cache folder and subfolders are writeable. Refresh your magento cache. Logout from admin, and login again.
+To install the extension, copy the contents of the extension app folder to your magento store app folder. Make sure the extension cache folder is writeable by your www user group. Refresh your magento cache. Logout from admin, and login again.
+
+modman clone https://github.com/gaiterjones/magento-GetCustomerFeedback.git
  
 
 ## License
