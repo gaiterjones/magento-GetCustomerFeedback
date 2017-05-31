@@ -154,10 +154,16 @@ class PAJ_GetCustomerFeedback_Model_Observer
 					$cartProductImageURL=str_replace("https","http",$cartProductImageURL);
 					$cartProductVisibility=$cartProduct->getVisibility();
 					
-					// normal product url with review-form #
-					$productURL=Mage::app()->getStore($orderStoreID)->getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK). Mage::getResourceSingleton('catalog/product')->getAttributeRawValue($cartProductID, 'url_key', Mage::app()->getStore($orderStoreID)). '.html/#review-form'. $urlTrackingTags;
-					// review product url
-					$reviewURL=Mage::app()->getStore($orderStoreID)->getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags;
+					if (Mage::getStoreConfig('getcustomerfeedback_section1/general/custom_product_review_url')) {
+						
+						// custom product review url with review-form #
+						$productReviewURL=Mage::app()->getStore($orderStoreID)->getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK). Mage::getResourceSingleton('catalog/product')->getAttributeRawValue($cartProductID, 'url_key', Mage::app()->getStore($orderStoreID)). '.html/#review-form'. $urlTrackingTags;
+						
+					} else {
+						
+						// standard review product url
+						$productReviewURL=Mage::app()->getStore($orderStoreID)->getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags;
+					}
 					
 					if ($cartProduct->getVisibility()=== "4") // products must be visible in search and catalogue
 					{
@@ -175,10 +181,10 @@ class PAJ_GetCustomerFeedback_Model_Observer
 						}*/
 						{
 							$cartHTML=$cartHTML. '
-								<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. $productURL. '">Leave Feedback</a></td>'. $newline;
+								<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. $productReviewURL. '">Leave Feedback</a></td>'. $newline;
 						} else {
 							$cartHTML=$cartHTML. 
-								'<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. $productURL. '"><img src="'. $emailFeedbackIconURL. '" width="75%"></a></td>'. $newline;
+								'<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. $productReviewURL. '"><img src="'. $emailFeedbackIconURL. '" width="75%"></a></td>'. $newline;
 						}						
 						$cartHTML=$cartHTML. '</tr>'. $newline;
 						
