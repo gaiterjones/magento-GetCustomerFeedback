@@ -1,8 +1,0 @@
-# Translation file for store ID1
-#
-Hello=Hello
-Your Order=Your Order
-Leave Feedback=Leave Feedback
-Thankyou,=Thankyou,
-This email was sent to: =This email was sent to: 
-Customer=Customer

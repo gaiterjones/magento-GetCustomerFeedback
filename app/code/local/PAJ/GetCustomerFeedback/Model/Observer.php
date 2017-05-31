@@ -4,30 +4,6 @@
  *  
  *  Copyright (C) 2013 paj@gaiterjones.com
  *
- *  v0.0.12 - 25.11.2011 - dev BETA release
- *  v0.0.13 - 25.11.2011 - bug fixes - store name and image links
- *  v0.0.15 - 25.11.2011 - implemented detection for invisible simple products
- *						   that are children of a grouped product.
- *  v0.0.16 - 09.12.2011 - implemented change to allow removal of duplicates
- *						   products from generated cart array and force UTF8
- *						   conversion of description text.
- *  v0.0.17 - 16.12.2011 - Improved customer name handling
- *                         added multistore functionality to allow for for multi language
- *  v0.0.18 - 04.01.2012 - Improved email formatting and options for translations
- *  v0.0.19 - 05.01.2012 - Added max feedback item control
- *  v0.0.19a - 05.01.2012 - Bug Fix
- *	v0.0.20	- 20.02.2012 - Added locale file for translations
- *	v0.0.23	- 21.03.2012 - Added controls to prevent empty customer name from breaking code.
- * 	v0.0.3 - 28.02.2013  - Zuiko enhanced code to validate cache files against orders before sending.
- * 	v0.0.4 - 16.04.2013  - Code tidy up, enhancements to order checking, fraud check etc.
- * 	v0.0.5 - 29.04.2013  - Added option to use Magento mail system by default to try and avoid customer mail going to spam using custom mail class.
- * 	v0.0.6 - 29.04.2013  - Added detection of configurable parent for invisible child products in cart.
- * 	v0.0.61 - 01.05.2013  - bug fix.
- * 	v0.0.62 - 02.05.2013  - bug fix.
- * 	v0.0.63 - 10.05.2013  - changed alert emails to use mage or php class
- * 	v0.0.65 - 17.05.2013  - bug fix/s.
- * 	v0.0.7  - 21.05.2013  - Add new timestamp to order data when order is complete to make waiting period for feedback email more accurate.
- *                         
  *
  *	This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -48,9 +24,6 @@
  * 
  *
  */
-
-// php mail class 
-require_once Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'classes'. DS . 'class.GetCustomerFeedback.Email.php';
 
 class PAJ_GetCustomerFeedback_Model_Observer
 {
@@ -79,6 +52,10 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		
 		// store id
 		$orderStoreID=$order->getStoreId();
+		
+		// switch to order locale for translations
+		$storeLocaleCode=Mage::getStoreConfig('general/locale/code', $orderStoreID);
+		Mage::getSingleton('core/translate')->setLocale($storeLocaleCode)->init('frontend', true);
 		
 		// items
 		$items = $order->getAllItems();
@@ -156,7 +133,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 				$maxFeedbackItems=(int)Mage::getStoreConfig('getcustomerfeedback_section1/general/max_feedback_items',$orderStoreID);
 				
 				$cartHTML=null;
-				$cartHTML=$cartHTML. '<table cellspacing="0" cellpadding="0" border="0" width="650" style="border:1px solid #EAEAEA;">'. $newline;	
+				$cartHTML=$cartHTML. '<table cellspacing="0" cellpadding="0" border="0" width="100%" style="border:1px solid #EAEAEA;">'. $newline;	
 				$cartHTML=$cartHTML. '<tbody bgcolor="#F6F6F6">'. $newline;	;
 				
 				if (!is_numeric($maxFeedbackItems)) {
@@ -177,12 +154,17 @@ class PAJ_GetCustomerFeedback_Model_Observer
 					$cartProductImageURL=str_replace("https","http",$cartProductImageURL);
 					$cartProductVisibility=$cartProduct->getVisibility();
 					
+					// normal product url with review-form #
+					$productURL=Mage::app()->getStore($orderStoreID)->getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK). Mage::getResourceSingleton('catalog/product')->getAttributeRawValue($cartProductID, 'url_key', Mage::app()->getStore($orderStoreID)). '.html/#review-form'. $urlTrackingTags;
+					// review product url
+					$reviewURL=Mage::app()->getStore($orderStoreID)->getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags;
+					
 					if ($cartProduct->getVisibility()=== "4") // products must be visible in search and catalogue
 					{
 						$cartHTML=$cartHTML. '<tr>'. $newline;
-						$cartHTML=$cartHTML. '<td align="left" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;">'. $itemCount. '</td>'. $newline;
-						$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><img height="64" width="64" src="'. $cartProductImageURL. '"></td>'. $newline;
-						$cartHTML=$cartHTML. '<td align="left" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;">'. htmlentities($cartProductName, ENT_QUOTES, "UTF-8"). '</td>'. $newline;//YJC encoding precision
+						$cartHTML=$cartHTML. '<td align="left" valign="top" style="font-size:15px; padding:3px 9px 3px; border-bottom:1px dotted #CCCCCC;">'. $itemCount. '</td>'. $newline;
+						$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:15px; padding:3px 9px 3px; border-bottom:1px dotted #CCCCCC;"><img height="64" width="64" src="'. $cartProductImageURL. '"></td>'. $newline;
+						$cartHTML=$cartHTML. '<td align="left" valign="top" style="font-size:15px; padding:3px 9px 3px; border-bottom:1px dotted #CCCCCC;">'. htmlentities($cartProductName, ENT_QUOTES, "UTF-8"). '</td>'. $newline;//YJC encoding precision
 						
 						if (empty($emailFeedbackIconURL))
 						/*
@@ -192,9 +174,11 @@ class PAJ_GetCustomerFeedback_Model_Observer
 							$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags. '"><img src="'. $emailFeedbackIconURL. '"></a></td>'. $newline;
 						}*/
 						{
-							$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. Mage::app()->getStore($orderStoreID)->getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags. '">Leave Feedback</a></td>'. $newline;
+							$cartHTML=$cartHTML. '
+								<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. $productURL. '">Leave Feedback</a></td>'. $newline;
 						} else {
-							$cartHTML=$cartHTML. '<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. Mage::app()->getStore($orderStoreID)->getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK). 'review/product/list/id/'. $cartProductID. '/#review-form'. $urlTrackingTags. '"><img src="'. $emailFeedbackIconURL. '"></a></td>'. $newline;
+							$cartHTML=$cartHTML. 
+								'<td align="center" valign="top" style="font-size:11px; padding:3px 9px; border-bottom:1px dotted #CCCCCC;"><a href="'. $productURL. '"><img src="'. $emailFeedbackIconURL. '" width="75%"></a></td>'. $newline;
 						}						
 						$cartHTML=$cartHTML. '</tr>'. $newline;
 						
@@ -337,11 +321,15 @@ class PAJ_GetCustomerFeedback_Model_Observer
 						// get store id from .dat file
 						$storeID=trim($orderData[6]);
 						
+						// switch to order locale for translations
+						$storeLocaleCode=Mage::getStoreConfig('general/locale/code', $storeID);
+						Mage::getSingleton('core/translate')->setLocale($storeLocaleCode)->init('frontend', true);
+						
 						// get customer name from .dat file
 						$customerName=trim($orderData[1]);
 						
 						// catch empty customer name as this will break email
-						if (empty($customerName)){ $customerName=$this->getTranslation('Customer',$storeID); }
+						if (empty($customerName)){ $customerName=Mage::helper('PAJ_GetCustomerFeedback')->__('Customer'); }
 						
 						// get customer email address from .dat file
 						$customerEmail=trim($orderData[2]);
@@ -378,45 +366,56 @@ class PAJ_GetCustomerFeedback_Model_Observer
 								// set email subject text
 								$subject=Mage::getStoreConfig('getcustomerfeedback_section1/general/email_subject',$storeID);
 								if (empty($subject)) {
-									$subject = Mage::getStoreConfig('getcustomerfeedback_section1/general/email_footer_link',$storeID). ' : '. $this->getTranslation('Your Order',$storeID). ' # '. trim($orderData[0]);
+									$subject = Mage::getStoreConfig('getcustomerfeedback_section1/general/email_footer_link',$storeID). ' : '. Mage::helper('PAJ_GetCustomerFeedback')->__('Your Order'). ' # '. trim($orderData[0]);
 								}
 								
-								$style='<style type="text/css">
-	body,td { color:#2f2f2f; font:11px/1.35em Verdana, Arial, Helvetica, sans-serif; }
-	a:visited {color: #000000}
-	</style>';
-								
-								$header='<body style="background:#F6F6F6; font-family:Verdana, Arial, Helvetica, sans-serif; font-size:12px; margin:0; padding:0;">
-	<div style="background:#F6F6F6; font-family:Verdana, Arial, Helvetica, sans-serif; font-size:12px; margin:0; padding:0;">
-	<table cellspacing="0" cellpadding="0" border="0" width="100%">
-	<tr>
-	<td align="center" valign="top" style="padding:20px 0 20px 0">
-	<table bgcolor="#FFFFFF" cellspacing="0" cellpadding="10" border="0" width="650" style="border:1px solid #E0E0E0;">';
+							
+								$html='
+									<div style="background:#F6F6F6; font-family:Verdana, Arial, Helvetica, sans-serif; font-size:12px; margin:0; padding:0;">
+											
+												
+													<table bgcolor="#FFFFFF" cellspacing="0" cellpadding="10" border="0" width="100%" style="border:1px solid #E0E0E0;">
 										
-								$greeting = '<tr><td valign="top"><h1 style="font-size:22px; font-weight:normal; line-height:22px; margin:0 0 11px 0;"">'. $this->getTranslation('Hello',$storeID). ' '. htmlentities($customerName, ENT_QUOTES, "UTF-8") . ',</h1>';//YJC encoding precision
-								$orderInfo = '<tr><td><h2 style="font-size:18px; font-weight:normal; margin:0;">'. $this->getTranslation('Your Order',$storeID). ' #'. trim($orderData[0]). '<small> ('. (date("j.n.Y h:i:s A",(int)$orderData[4])). ')</small></h2></td></tr>';
-								$intro = '<p style="font-size:12px; line-height:16px; margin:0;">'. Mage::getStoreConfig('getcustomerfeedback_section1/general/email_text1',$storeID). '</p></tr></td>';
-								$products = '<tr><td>'. file_get_contents (Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3])). '</td></tr>';
+														<tr>
+														
+															<td valign="top" style="color:#2f2f2f; font:11px/1.35em Verdana, Arial, Helvetica, sans-serif;">
+																<h1 style="font-size:22px; font-weight:normal; line-height:22px; margin:0 0 11px 0;"">'. Mage::helper('PAJ_GetCustomerFeedback')->__('Hello'). ' '. htmlentities($customerName, ENT_QUOTES, "UTF-8") . ',</h1>
+																<p style="font-size:12px; line-height:16px; margin:0;">'. Mage::getStoreConfig('getcustomerfeedback_section1/general/email_text1',$storeID). '</p>
+															<tr>
+																<td style="color:#2f2f2f; font:12px/1.35em Verdana, Arial, Helvetica, sans-serif;">
+																	<h2 style="font-size:18px; font-weight:normal; margin:0;">'. Mage::helper('PAJ_GetCustomerFeedback')->__('Your Order'). ' #'. trim($orderData[0]). '<small> ('. (date("j.n.Y h:i:s A",(int)$orderData[4])). ')</small></h2>
+																</td>
+															</tr>
+
+														</tr>
+												
+												
+														<tr>
+															<td>'. file_get_contents (Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS . 'cache'. DS. trim($orderData[3])). '</td>
+														</tr>
+													
+													</table>
+
+									</div>												
+								';
 								
 								$footerText=Mage::getStoreConfig('getcustomerfeedback_section1/general/email_footer_link',$storeID);
-								$footerTextHtml='<strong><a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB).'">'. $footerText .'</a></strong>';
+								$logo=false;
+								$footerTextHtml='
+												<strong>
+													<a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB).'">'. $footerText .'</a>
+												</strong>
+								';
 								
 								if (strtolower(substr($footerText, -4)) === ".png") // check for image
 								{
-									$footerTextHtml='<a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB).'"><img style="border: 0px;" src="'. $footerText .'"></a>';
+									$logo='<a href="'. Mage::getBaseUrl(Mage_Core_Model_Store:: URL_TYPE_WEB).'"><img style="border: 0px;" src="'. $footerText .'"></a>';
 								}
 								
-								$footer = '<tr><td><p>'. Mage::getStoreConfig('getcustomerfeedback_section1/general/email_text2',$storeID). '</p><p style="font-size:12px; margin:0 0 10px 0"></p></td></tr>
-	<tr>
-	<td bgcolor="#EAEAEA" align="center" style="background:#EAEAEA; text-align:center;"><p style="font-size:12px; text-align:center; margin:0;">'. $footerTextHtml. '</p></td>
-	</tr>
-	</tr>
-	</table>
-	</div>
-	</body>';
-								
-								// construct email html
-								$body=$style.$header.$greeting.$intro.$orderInfo.$products.$footer;
+								// template
+								$html=$this->getTemplate($to,$fromName,$subject,$html,$logo,$storeLocaleCode);
+								// minify
+								$html=PAJ_GetCustomerFeedback_Model_Minify::minify($html,array('jsCleanComments' => true));
 								
 								// if check status is set to yes
 								if (Mage::getStoreConfig('getcustomerfeedback_section1/general/check_order_status'))
@@ -428,10 +427,20 @@ class PAJ_GetCustomerFeedback_Model_Observer
 										// send get feedback email
 										if (Mage::getStoreConfig('getcustomerfeedback_section1/general/use_php_mail')) // use php mail
 										{
-											$oMail = new GetCustomerFeedbackMail($toName. ' <'. $to. '>',$fromName. ' <'. $from. '>',$subject,$body,$bcc);
+											$oMail = new PAJ_GetCustomerFeedback_Model_Email($toName. ' <'. $to. '>',$fromName. ' <'. $from. '>',$subject,$html,$bcc);
 											$_sendMail=$oMail->send();
+											
 										} else { // use magento mail
-											$_sendMail=$this->magentoMail($toName,$to,$body,$subject,$fromName,$from,$bcc);
+										
+											$_sendMail=$this->magentoMail(
+												$toName,
+												$to,
+												$html,
+												$subject,
+												$fromName,
+												$from,
+												$bcc
+											);
 										
 										}
 										
@@ -461,10 +470,10 @@ class PAJ_GetCustomerFeedback_Model_Observer
 									// send get feedback email
 									if (Mage::getStoreConfig('getcustomerfeedback_section1/general/use_php_mail')) // use php mail
 									{
-										$oMail = new GetCustomerFeedbackMail($toName. ' <'. $to. '>',$fromName. ' <'. $from. '>',$subject,$body,$bcc);
+										$oMail = new PAJ_GetCustomerFeedback_Model_Email($toName. ' <'. $to. '>',$fromName. ' <'. $from. '>',$subject,$html,$bcc);
 										$_sendMail=$oMail->send();
 									} else { // use magento mail
-										$_sendMail=$this->magentoMail($toName,$to,$body,$subject,$fromName,$fromEmail,$bcc);
+										$_sendMail=$this->magentoMail($toName,$to,$html,$subject,$fromName,$fromEmail,$bcc);
 									
 									}
 									
@@ -587,34 +596,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 	  // return array containing filenames
 	  return $results;
 	}
-	
 
-	// function to return translations from locale file
-	//
-	private function getTranslation($word,$storeID=1) 
-	{
-	  $translationFile=Mage::getModuleDir('', 'PAJ_GetCustomerFeedback') . DS. 'translate_store_id_'. (string)$storeID. '.txt';
-	  
-		if (file_exists($translationFile))
-		{
-	  
-		  $file_handle = fopen($translationFile, "rb");
-
-			while (!feof($file_handle) ) {
-			$line_of_text = fgets($file_handle);
-			$parts = explode('=', $line_of_text);
-			
-				if ($parts[0]===$word)
-				{
-					$word=trim($parts[1]);
-					break;
-				}
-			}
-			fclose($file_handle);
-		}
-		
-		return $word;
-	}
 
 	// function to update dat order file
 	//
@@ -680,7 +662,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 			if (Mage::getStoreConfig('getcustomerfeedback_section1/general/use_php_mail')) // use php mail
 			{
 				$_subject='Alert from Get Customer Feedback Module (PHP)';
-				$oMail = new GetCustomerFeedbackMail($_toName. ' <'. $_toEmail. '>',$_fromName. ' <'. $_fromEmail. '>',$_subject,$_body);
+				$oMail = new PAJ_GetCustomerFeedback_Model_Email($_toName. ' <'. $_toEmail. '>',$_fromName. ' <'. $_fromEmail. '>',$_subject,$_body);
 				$_sendMail=$oMail->send();
 				
 			} else { // use magento mail
@@ -689,7 +671,22 @@ class PAJ_GetCustomerFeedback_Model_Observer
 			}
 		}
 	}
-	
+
+    private function getTemplate($to,$from,$subject,$body,$logo,$storeLocaleCode){
+
+		$_template=file_get_contents(dirname(__FILE__). '/template/default_email_template.html', FILE_USE_INCLUDE_PATH);
+		
+		$_now=new \DateTime();		
+		
+		$_template=str_replace('{SENDER}',$from,$_template);
+		$_template=str_replace('{DATE}',$_now->format('d-m-Y'),$_template);
+		$_template=str_replace('{SUBJECT}',$subject,$_template);
+		if ($logo) {$_template=str_replace('*|LOGO|*',$logo,$_template);}
+		$_template=str_replace('*|1|*',$body,$_template);
+		$_template=str_replace('{EMAIL}',$to,$_template);
+		$_template=str_replace('{LOCALE}',$storeLocaleCode,$_template);
+		return $_template;
+    }		
 // class
 }
 

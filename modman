@@ -1,0 +1,3 @@
+app/code/local/PAJ/GetCustomerFeedback/     app/code/local/PAJ/GetCustomerFeedback/
+app/etc/modules/PAJ_GetCustomerFeedback.xml	app/etc/modules/PAJ_GetCustomerFeedback.xml
+app/locale/de_DE/PAJ_GetCustomerFeedback.csv	app/locale/de_DE/PAJ_GetCustomerFeedback.csv

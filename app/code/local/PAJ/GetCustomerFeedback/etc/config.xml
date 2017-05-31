@@ -3,19 +3,14 @@
 <config>
   <modules>
 	  <PAJ_GetCustomerFeedback>
-		  <version>0.0.7</version>
+		  <version>1.0.0</version>
 	  </PAJ_GetCustomerFeedback>
   </modules> 
     <global>
-        <blocks>
-            <getcustomerfeedbackblock1>
-            	<class>PAJ_GetCustomerFeedback_Block</class>
-           	</getcustomerfeedbackblock1>
-        </blocks>
         <helpers>
-            <getcustomerfeedbackhelper1>
+            <PAJ_GetCustomerFeedback>
                 <class>PAJ_GetCustomerFeedback_Helper</class>
-            </getcustomerfeedbackhelper1>
+            </PAJ_GetCustomerFeedback>
         </helpers>        
         <models>
             <getcustomerfeedbackmodel1>
@@ -58,15 +53,15 @@
 			</observers>
 		</checkout_onepage_controller_success_action>
 	</events>
-		<translate> 
-			<modules> 
-				<PAJ_GetCustomerFeedback> 
-					<files> 
-						<default>PAJ_GetCustomerFeedback.csv</default> 
-					</files> 
-				</PAJ_GetCustomerFeedback> 
-			</modules> 
-		</translate>		
+	<translate> 
+		<modules> 
+			<PAJ_GetCustomerFeedback> 
+				<files> 
+					<default>PAJ_GetCustomerFeedback.csv</default>
+				</files> 
+			</PAJ_GetCustomerFeedback> 
+		</modules> 
+	</translate>		
 	</frontend>
 	
 	<adminhtml>
@@ -78,7 +73,7 @@
 							<children>
 								<config>
 									<children>
-										<getcustomerfeedback_section1 translate="title" module="getcustomerfeedbackhelper1">
+										<getcustomerfeedback_section1 translate="title" module="PAJ_GetCustomerFeedback">
 											<title>Get Customer Feedback Section by PAJ</title>
 											<sort_order>60</sort_order>
 										</getcustomerfeedback_section1>

@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <config>
     <tabs>
-        <paj_extensions translate="label" module="getcustomerfeedbackhelper1">
+        <paj_extensions translate="label" module="PAJ_GetCustomerFeedback">
             <label>My Extensions</label>
             <sort_order>210</sort_order>
         </paj_extensions>
     </tabs>
     <sections>
-        <getcustomerfeedback_section1 translate="label" module="getcustomerfeedbackhelper1">
+        <getcustomerfeedback_section1 translate="label" module="PAJ_GetCustomerFeedback">
             <class>separator-top</class>
             <label>Get Customer Feedback</label>
             <tab>paj_extensions</tab>

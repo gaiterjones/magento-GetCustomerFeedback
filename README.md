@@ -1,28 +1,24 @@
-## Magento Print/View Invoices
+## Magento Get Customer Feedback
 ***
 
 ### Synopsis
-This PHP application allows you to print and view Magento invoices with one click.
+This extensions sends a Get Customer Feedback email to customers who have placed an order.
 
 ### Version
 ***
-	@version		10092013
-	@since			09 2013
+	@version		30052017
 	@author			gaiterjones
 	@documentation	[blog.gaiterjones.com](http://blog.gaiterjones.com)
-	@twitter		twitter.com/gaiterjones
 	
 ### Requirements
 
 * PHP5.x/MYSQL
 
-* Magento 1.3+
+* Magento CE 1.3-1.9
 
 ### Installation
 
-Copy the application files to a web accessible folder.
-
-You may install the application in your Magento folder but you should secure the installation folder, as there is no application security.
+To install the extension, copy the contents of the extension app folder to your magento store app folder. Make sure the extension cache folder and subfolders are writeable. Refresh your magento cache. Logout from admin, and login again.
  
 
 ## License
