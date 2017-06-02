@@ -352,8 +352,8 @@ class PAJ_GetCustomerFeedback_Model_Observer
 								// construct email
 								// check for test mode
 								if (Mage::getStoreConfig('getcustomerfeedback_section1/general/test_mode_enabled')) {
-									$toName=Mage::getStoreConfig('trans_email/ident_general/name');
-									$to = Mage::getStoreConfig('trans_email/ident_general/email');
+									$toName=Mage::getStoreConfig('trans_email/ident_support/name');
+									$to = Mage::getStoreConfig('trans_email/ident_support/email');
 								} else {
 									$to = $customerEmail;
 									$toName = $customerName;
@@ -362,7 +362,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 								// check for bcc mode
 								$bcc=null;
 								if (Mage::getStoreConfig('getcustomerfeedback_section1/general/bcc_emails_enabled')) {
-									$bcc = Mage::getStoreConfig('trans_email/ident_general/email');
+									$bcc = Mage::getStoreConfig('trans_email/ident_support/email');
 								}
 								
 								// email from address uses store sales address
@@ -655,12 +655,12 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		
 			$_body = wordwrap($message, 70);
 						
-			$_fromEmail = Mage::getStoreConfig('trans_email/ident_general/email');
+			$_fromEmail = Mage::getStoreConfig('trans_email/ident_support/email');
 			//$_fromEmail = 'your @ email address here.com'; // edit for debugging
 			
 			$_fromName='Get Customer Feedback Module';
 			
-			$_toEmail=Mage::getStoreConfig('trans_email/ident_general/email');
+			$_toEmail=Mage::getStoreConfig('trans_email/ident_support/email');
 			//$_toEmail = 'your @ email address here.com'; // edit for debugging
 			
 			$_toName='Module Support';
