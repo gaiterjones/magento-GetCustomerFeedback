@@ -1,7 +1,4 @@
 <?php
-
-
-
 class PAJ_GetCustomerFeedback_Model_Email extends Mage_Core_Model_Abstract
 {
     var $to = null;

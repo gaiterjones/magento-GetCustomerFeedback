@@ -2,7 +2,7 @@
 /**
  *  Get Customer Feedback Module
  *  
- *  Copyright (C) 2013 paj@gaiterjones.com
+ *  Copyright (C) 2017 paj@gaiterjones.com
  *
  *
  *	This program is free software: you can redistribute it and/or modify
@@ -419,7 +419,7 @@ class PAJ_GetCustomerFeedback_Model_Observer
 								}
 								
 								// template
-								$html=$this->getTemplate($to,$fromName,$subject,$html,$logo,$storeLocaleCode);
+								$html=$this->getTemplate($to,$fromName,$subject,$html,$logo,$storeLocaleCode,$storeID);
 								// minify
 								$html=PAJ_GetCustomerFeedback_Model_Minify::minify($html,array('jsCleanComments' => true));
 								
@@ -678,9 +678,18 @@ class PAJ_GetCustomerFeedback_Model_Observer
 		}
 	}
 
-    private function getTemplate($to,$from,$subject,$body,$logo,$storeLocaleCode){
+    private function getTemplate($to,$from,$subject,$body,$logo,$storeLocaleCode,$storeID){
 
-		$_template=file_get_contents(dirname(__FILE__). '/template/default_email_template.html', FILE_USE_INCLUDE_PATH);
+		$_customTemplate=Mage::getStoreConfig('getcustomerfeedback_section1/general/custom_email_template_filename',$storeID);
+		
+		if ($_customTemplate !== '' && file_exists(Mage::getBaseDir(). '/var/import/'. $_customTemplate)) {
+			
+			$_template=file_get_contents(Mage::getBaseDir(). '/var/import/'. $_customTemplate, FILE_USE_INCLUDE_PATH);
+			
+		} else {
+			
+			$_template=file_get_contents(dirname(__FILE__). '/template/default_email_template.html', FILE_USE_INCLUDE_PATH);
+		}
 		
 		$_now=new \DateTime();		
 		
